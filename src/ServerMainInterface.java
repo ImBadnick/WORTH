@@ -1,4 +1,7 @@
+import ProjectUtils.*;
+
 import java.io.IOException;
+
 
 public interface ServerMainInterface  {
 
@@ -14,13 +17,13 @@ public interface ServerMainInterface  {
     Implementation: Has to be done when TCP connection is up. Server has to response with list of user and online/offline users
                     SERVER MUST UPDATE THE USERS REGISTERED AND THEIR STATUS WITH A CALLBACK SYSTEM.
      */
-    public LoginResult<NicknameStatusPair> login(String nickUtente, String password) throws IOException;
+    LoginResult<NicknameStatusPair> login(String nickUtente, String password) throws IOException;
 
     /*
     The logout method is a simply logout.
     Implementation: Command sent by TCP
      */
-    public String logout(String nickUtente);
+    String logout(String nickUtente);
 
     /*
     The listUsers method is used to list the nicks of users in the system and their status.
@@ -28,7 +31,7 @@ public interface ServerMainInterface  {
     - LIST NULL
     Implementation: Command sent by TCP
      */
-    public Result<NicknameStatusPair> listUsers();
+    Result<NicknameStatusPair> listUsers();
 
     /*
     The listOnlineUsers method is used to list the nicks of users in the system that are online
@@ -36,7 +39,7 @@ public interface ServerMainInterface  {
     - LIST NULL
     Implementation: Command sent by TCP
      */
-    public Result<String> listOnlineUsers();
+    Result<String> listOnlineUsers();
 
     /*
     The listProjects is used to list all the projects that the user participates
@@ -44,7 +47,7 @@ public interface ServerMainInterface  {
     - LIST NULL
     Implementation: Command sent by TCP
      */
-    public Result<String> listProjects(String nickUtente);
+    Result<String> listProjects(String nickUtente);
 
     /*
     The createProject method is used to create a new project.
@@ -52,7 +55,7 @@ public interface ServerMainInterface  {
     2) return error -> "Project cant be created! it exists yet"
     Implementation: Command sent by TCP
      */
-    public String createProject(String projectName,String nickUtente);
+    String createProject(String projectName, String nickUtente);
 
     /*
     The addMember method is used to add an user to a Project.
@@ -61,7 +64,7 @@ public interface ServerMainInterface  {
        - The user is not registered -> returns "The user can't be added to the project 'cause he's not registered
        - The project doesn't exist -> returns "The user can't be added to the project 'cause the project doesn't exists
      */
-    public String addMember(String projectName, String nickUtente, String addingUser);
+    String addMember(String projectName, String nickUtente, String addingUser);
 
     /*
     The showMembers method is used to get the list of members that participate to a project
@@ -69,7 +72,7 @@ public interface ServerMainInterface  {
     - Project doesn't exist -> Returns null
     - List NULL
      */
-    public Result<String> showMembers(String projectName, String nickUtente);
+    Result<String> showMembers(String projectName, String nickUtente);
 
     /*
     Possible status of a card:
@@ -85,7 +88,7 @@ public interface ServerMainInterface  {
     - Project doesn't exists -> Returns null
     - List NULL
      */
-    public Result<String> showCards(String projectName, String nickUtente);
+    Result<NicknameStatusPair> showCards(String projectName, String nickUtente);
 
 
     /*
@@ -94,13 +97,13 @@ public interface ServerMainInterface  {
     - Project doesn't exists -> Returns null
     - List NULL
      */
-    public Result<String> showCard(String projectName, String cardName, String nickUtente);
+    Result<String> showCard(String projectName, String cardName, String nickUtente);
 
 
     /*
     The addCard method is used to add the card
      */
-    public String addCard(String projectName, String cardName, String description, String nickUtente);
+    String addCard(String projectName, String cardName, String description, String nickUtente);
 
     /*
     The moveCard method its used to move a card from a list to another one
@@ -111,7 +114,7 @@ public interface ServerMainInterface  {
     - cardName is not in the fromList -> returns "Card doesn't exists in the fromList"
     - Can't move the card from the fromList to the toList 'cause the movement is not permitted
      */
-    public String moveCard(String projectName, String cardName, String fromList, String movetoList, String nickUtente);
+    String moveCard(String projectName, String cardName, String fromList, String movetoList, String nickUtente);
 
     /*
     The getCardHistory method returns the history of the card -> movements of the card in the status lists
@@ -120,7 +123,7 @@ public interface ServerMainInterface  {
     - CardName doesnt exists in the project -> Return NULL
     - LIST NULL
      */
-    public Result<String> getCardHistory(String projectName, String cardName,String nickUtente);
+    Result<String> getCardHistory(String projectName, String cardName, String nickUtente);
 
     /*
     The readChat method shows all the messages wrote in the chat of the project
@@ -128,12 +131,12 @@ public interface ServerMainInterface  {
     Possible situations:
 
      */
-    public chatINFO readChat(String ProjectName, String nickUtente);
+    chatINFO readChat(String ProjectName, String nickUtente);
 
     /*
     The sendChatMsg method sends a message in the chat of the project
      */
-    public chatINFO sendChatMsg(String ProjectName, String nickUtente);
+    chatINFO sendChatMsg(String ProjectName, String nickUtente);
 
     /*
     The cancelProject method delete a project. It can be done only if all the cards are in status DONE.
@@ -142,7 +145,7 @@ public interface ServerMainInterface  {
     - ProjectName doesn't exists -> Error message
     - All the cards are not in status DONE -> Error message
      */
-    public String cancelProject(String projectName, String nickUtente);
+    String cancelProject(String projectName, String nickUtente);
 
 
 }

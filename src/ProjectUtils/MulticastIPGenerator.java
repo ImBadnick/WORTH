@@ -1,4 +1,8 @@
-public class MulticastIPGenerator {
+package ProjectUtils;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+public class MulticastIPGenerator { //Used to generate multicast IP address
     private int part1;
     private int part2;
     private int part3;
@@ -16,20 +20,20 @@ public class MulticastIPGenerator {
     public String generateIP(){
         if(part4<255){
             this.part4++;
-            return new String(part1 + "." + part2 + "." + part3 +"." + part4);
+            return part1 + "." + part2 + "." + part3 + "." + part4;
         }
         else{
             if(part3<255){
                 this.part3++;
                 this.part4=0;
-                return new String(part1 + "." + part2 + "." + part3 +"." + part4);
+                return part1 + "." + part2 + "." + part3 + "." + part4;
             }
             else{
                 if(part2<255){
                     this.part2++;
                     this.part3=0;
                     this.part4=0;
-                    return new String(part1 + "." + part2 + "." + part3 +"." + part4);
+                    return part1 + "." + part2 + "." + part3 + "." + part4;
                 }
                 else{
                     if(part1<239){
@@ -37,7 +41,7 @@ public class MulticastIPGenerator {
                         this.part2=0;
                         this.part3=0;
                         this.part4=0;
-                        return new String(part1 + "." + part2 + "." + part3 +"." + part4);
+                        return part1 + "." + part2 + "." + part3 + "." + part4;
                     }
                     else return "ERROR";
                 }
@@ -54,4 +58,12 @@ public class MulticastIPGenerator {
     public int getPart2() { return part2; }
     public int getPart3() { return part3; }
     public int getPart4() { return part4; }
+
+    @JsonIgnore
+    public void reset(){
+        part1 = 224;
+        part2 = 0;
+        part3 = 0;
+        part4 = 0;
+    }
 }

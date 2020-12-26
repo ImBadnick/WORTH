@@ -1,15 +1,11 @@
-import com.fasterxml.jackson.annotation.JsonInclude;
+import ProjectUtils.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.JSONPObject;
-import com.sun.org.apache.xpath.internal.operations.Mult;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.*;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -17,154 +13,76 @@ import java.rmi.server.RemoteObject;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-class CallBackInfo{ //Info for callbacks
-    private NotifyEventInterface client;
-    private String userNickname;
-    public CallBackInfo(NotifyEventInterface client, String userNickname){
-        this.client = client;
-        this.userNickname = userNickname;
-    }
-
-    public NotifyEventInterface getClient(){ return this.client; }
-    public String getuserNickname(){ return this.userNickname; }
-
-    public void setClient(NotifyEventInterface client){ this.client = client; }
-    public void setUserNickname(String userNickname){ this.userNickname = userNickname; }
-}
-
-
-class Result<T> implements Serializable{
-    private String code;
-    private ArrayList<T> list;
-
-    public Result(String code, ArrayList<T> list){
-        this.list = list;
-        this.code = code;
-    }
-
-    public ArrayList<T> getList(){ return this.list; }
-    public String getCode() { return this.code; }
-
-    public void setList(ArrayList<T> list){ this.list = list;}
-    public void setCode(String code){ this.code = code;}
-}
-
-class multicastINFO implements Serializable{
-    private String ipAddress;
-    private int port;
-    public multicastINFO(String ipAddress, int port){
-        this.ipAddress = ipAddress;
-        this.port = port;
-    }
-    public String getIpAddress(){ return this.ipAddress; }
-    public int getPort(){ return this.port; }
-}
-
-class LoginResult<T> implements Serializable{
-    private String code;
-    private ArrayList<T> list;
-    private ArrayList<multicastINFO> multicastinfo;
-
-    public LoginResult(String code, ArrayList<T> list, ArrayList<multicastINFO> multicastinfo){
-        this.list = list;
-        this.code = code;
-        this.multicastinfo = multicastinfo;
-    }
-
-    public ArrayList<T> getList(){ return this.list; }
-    public String getCode() { return this.code; }
-    public ArrayList<multicastINFO> getMulticastinfo(){ return this.multicastinfo;}
-
-    public void setList(ArrayList<T> list){ this.list = list;}
-    public void setCode(String code){ this.code = code;}
-    public void setMulticastinfo(ArrayList<multicastINFO> multicastinfo) { this.multicastinfo = multicastinfo;}
-}
-
-
-class NicknameStatusPair implements Serializable {
-    String nickname;
-    String status;
-
-    public NicknameStatusPair(String nickname, String status){
-        this.nickname = nickname;
-        this.status = status;
-    }
-
-    public String getNickname(){
-        return this.nickname;
-    }
-    public String getStatus() { return this.status; }
-
-    public void setNickname(String nickname) { this.nickname = nickname; }
-    public void setStatus(String status) { this.status = status; }
-}
-
-class chatINFO implements Serializable {
-    String code;
-    String ipAddress;
-    public chatINFO(String code, String ipAddress){
-        this.code = code;
-        this.ipAddress = ipAddress;
-    }
-
-    public void setCode(String code) { this.code = code; }
-    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
-
-    public String getCode() { return code; }
-    public String getIpAddress() { return ipAddress; }
-}
-
 public class ServerMain extends RemoteObject implements ServerMainInterface,ServerMainInterfaceRMI{
-    private final List <CallBackInfo> clients;
-    private List<User> Users;
-    private List<Project> Projects;
-    private final Map<SocketChannel,List<byte[]>> dataMap;
-    private static final int RMIport = 16617;
-    private static final int TCPport = 20700;
-    private MulticastIPGenerator MipGenerator;
-    private Random random;
-    private File backupDir;
-    private ObjectMapper mapper;
-    private File userFile,projectFile,MipGeneratorFile;
+    private final List <CallBackInfo> clients; //Clients callback info
+    private List<User> Users; //Users registered
+    private List<Project> Projects; //Project list
+    private final Map<SocketChannel,List<byte[]>> dataMap; //Used to save and send response to the client
+    private static final int RMIport = 16617; //RMI PORT
+    private static final int TCPport = 20700; //TCP PORT
+    private MulticastIPGenerator MipGenerator; //MulticastIPGenerator
+    private final Random random; //Random
+    private final File backupDir; //Backup directory
+    private final ObjectMapper mapper; //ObjectMapper for json
+    private File userFile,projectFile,MipGeneratorFile; //Files for backup
+    private final ArrayList<multicastConnectInfo> Multicastsockets; //List of multicast server's info
 
     public ServerMain(){
         super();
         backupDir = new File("./Backup");
         this.mapper = new ObjectMapper();
-        backup();
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        this.Multicastsockets = new ArrayList<>();
         this.random = new Random();
         dataMap = new HashMap<>();
         clients = new ArrayList<>();
+        RestoreBackup();
     }
 
-    public void backup(){
+    public void RestoreBackup(){ //Restoring backup
         this.userFile = new File(backupDir + "/Users.json");
         this.projectFile = new File(backupDir + "/Projects.json");
         this.MipGeneratorFile = new File(backupDir + "/MipGenerator.json");
-        if(!backupDir.exists()) {
+        if(!backupDir.exists()) { //If backup directory doesn't exists -> create
             backupDir.mkdir();
         }
-
         try {
-            if(!userFile.exists()){
-                this.Users = new ArrayList<>();
-                userFile.createNewFile();
-                mapper.writeValue(userFile, Users);
-            } else {this.Users = new ArrayList<>(Arrays.asList(mapper.readValue(userFile,User[].class)));}
+            if(!userFile.exists()){ //If users file doesn't exists
+                this.Users = new ArrayList<>(); //Initialize user list
+                userFile.createNewFile(); //Create file
+                mapper.writeValue(userFile, Users); //Write the empty JsonARRAY to json file
+            } else {this.Users = new ArrayList<>(Arrays.asList(mapper.readValue(userFile,User[].class)));} //Backup from json file
 
-            if(!projectFile.exists()){
-                this.Projects = new ArrayList<>();
-                projectFile.createNewFile();
-                mapper.writeValue(projectFile, Projects);
-            } else {this.Projects =  new ArrayList<>(Arrays.asList(mapper.readValue(projectFile,Project[].class)));
+            if(!projectFile.exists()){ //If projects file doesn't exists
+                this.Projects = new ArrayList<>(); //Initialize project list
+                projectFile.createNewFile(); //Create file
+                mapper.writeValue(projectFile, Projects); //Write the empty JsonARRAY to json file
+            } else {
+                this.Projects =  new ArrayList<>(Arrays.asList(mapper.readValue(projectFile,Project[].class))); //Backup from json file
+                //Setup server projects multicast info
+                MulticastSocket ms;
+                String ip; int port;
+                for(Project project : Projects)
+                {
+                    try {
+                        ip = project.getMulticastAddress();
+                        port = project.getPort();
+                        ms = new MulticastSocket(port);
+                        ms.joinGroup(InetAddress.getByName(ip));
+                        ms.setSoTimeout(2000);
+                        Multicastsockets.add(new multicastConnectInfo(ms, ip, port));
+                    } catch (IOException e) { e.printStackTrace(); }
+                }
             }
 
-            if(!MipGeneratorFile.exists()){
-                this.MipGenerator = new MulticastIPGenerator(224,0,0,0);
-                MipGeneratorFile.createNewFile();
-                mapper.writeValue(MipGeneratorFile, MipGenerator);
-            } else {this.MipGenerator = mapper.readValue(MipGeneratorFile,MulticastIPGenerator.class);}
-
+            if(!MipGeneratorFile.exists()){ //If MulticastIPGenerator file doesn't exists
+                this.MipGenerator = new MulticastIPGenerator(224,0,0,0); //Initialize MulticastIPGenerator
+                MipGeneratorFile.createNewFile(); //Create file
+                mapper.writeValue(MipGeneratorFile, MipGenerator); //Write MulticastIPGenerator proprieties to JSON file
+            } else {
+                if(!Projects.isEmpty()) this.MipGenerator = mapper.readValue(MipGeneratorFile,MulticastIPGenerator.class); //Backup from json file
+                else this.MipGenerator = new MulticastIPGenerator(224,0,0,0); //Initialize MulticastIPGenerator
+            }
         } catch (IOException e) { e.printStackTrace(); }
 
     }
@@ -177,8 +95,8 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
             String[] Splittedcommand;
             List<byte[]> Data; ByteArrayOutputStream baos; ObjectOutputStream oos; byte[] res;
 
-            ServerSocketChannel srvSkt = ServerSocketChannel.open();  //Apertura del socket di ascolto
-            srvSkt.socket().bind(new InetSocketAddress(TCPport)); //Configurazione del socket
+            ServerSocketChannel srvSkt = ServerSocketChannel.open();  //Opening listening socket
+            srvSkt.socket().bind(new InetSocketAddress(TCPport)); //Configuring socket
             srvSkt.configureBlocking(false);
 
             //Setup selector
@@ -193,25 +111,24 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                     ex.printStackTrace();
                     break;
                 }
-
                 Set<SelectionKey> readyKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = readyKeys.iterator();
-
                 while (iterator.hasNext()) {
                     SelectionKey key = iterator.next();
                     iterator.remove();
                     try {
-                        if (key.isAcceptable()) { //"Catturo" le richieste di connessione
+                        if (key.isAcceptable()) { //"Catching" connection requests
                             ServerSocketChannel server = (ServerSocketChannel) key.channel();
                             SocketChannel client = server.accept();
                             System.out.println("SYSTEM: Accepted connection from " + client);
                             client.configureBlocking(false);
                             dataMap.put(client, new ArrayList<>());
-                            SelectionKey key2 = client.register(selector, SelectionKey.OP_READ);
+                            client.register(selector, SelectionKey.OP_READ);
                             key.attach(null);
                         }
-                        else if (key.isReadable()) { //"Catturo" le richieste di lettura
+                        else if (key.isReadable()) { //"Catching" read requests
                             SocketChannel client = (SocketChannel) key.channel();
+                            //Reading command requested
                             ByteBuffer buffer = ByteBuffer.allocate(128);
                             client.read(buffer);
                             command = new String(buffer.array()).trim();
@@ -221,14 +138,14 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "login":
                                     LoginResult<NicknameStatusPair> loginResponse;
                                     if(Splittedcommand.length<3) loginResponse = login("","");
-                                    else if(Splittedcommand.length>3) loginResponse = new LoginResult("Too much arguments",null,null);
+                                    else if(Splittedcommand.length>3) loginResponse = new LoginResult<>("Too much arguments", null, null);
                                     else {
                                         loginResponse = login(Splittedcommand[1], Splittedcommand[2]);
                                         if(loginResponse.getCode().equalsIgnoreCase("ok")) {
                                             key.attach(Splittedcommand[1]);
                                         }
                                     }
-                                    //Preparing the object to send back
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -248,6 +165,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                         }
                                         else response = "You are trying to logout another user!";
                                     }
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -258,8 +176,9 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "listusers":
                                     Result<NicknameStatusPair> ListUsersResponse;
-                                    if(Splittedcommand.length>1) ListUsersResponse = new Result("Too much arguments", null);
+                                    if(Splittedcommand.length>1) ListUsersResponse = new Result<>("Too much arguments", null);
                                     else ListUsersResponse = listUsers();
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -270,8 +189,9 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "listonlineusers":
                                     Result<String> ListOnlineUsersResponse;
-                                    if(Splittedcommand.length>1) ListOnlineUsersResponse = new Result("Too much arguments", null);
+                                    if(Splittedcommand.length>1) ListOnlineUsersResponse = new Result<>("Too much arguments", null);
                                     else ListOnlineUsersResponse = listOnlineUsers();
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -282,8 +202,9 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "listprojects":
                                     Result<String> ListProjects;
-                                    if(Splittedcommand.length>1) ListProjects = new Result("Too much arguments", null);
+                                    if(Splittedcommand.length>1) ListProjects = new Result<>("Too much arguments", null);
                                     else ListProjects = listProjects((String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -296,6 +217,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     if(Splittedcommand.length<2) response = createProject("","");
                                     else if(Splittedcommand.length>2) response = "Too much arguments";
                                     else response = createProject(Splittedcommand[1],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -308,6 +230,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     if(Splittedcommand.length<3) response = addMember("","","");
                                     else if(Splittedcommand.length>3) response = "Too much arguments";
                                     else response = addMember(Splittedcommand[1],Splittedcommand[2],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -319,8 +242,9 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "showmembers":
                                     Result<String> ShowMembersResponse;
                                     if(Splittedcommand.length<2) ShowMembersResponse = showMembers("",(String) key.attachment());
-                                    else if(Splittedcommand.length>2) ShowMembersResponse = new Result("Too much arguments", null);
+                                    else if(Splittedcommand.length>2) ShowMembersResponse = new Result<>("Too much arguments", null);
                                     else ShowMembersResponse = showMembers(Splittedcommand[1],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -330,10 +254,11 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     break;
 
                                 case "showcards":
-                                    Result<String> ShowCardsResponse;
+                                    Result<NicknameStatusPair> ShowCardsResponse;
                                     if(Splittedcommand.length<2) ShowCardsResponse = showCards("",(String) key.attachment());
-                                    else if(Splittedcommand.length>2) ShowCardsResponse = new Result("Too much arguments", null);
+                                    else if(Splittedcommand.length>2) ShowCardsResponse = new Result<>("Too much arguments", null);
                                     else ShowCardsResponse = showCards(Splittedcommand[1],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -345,8 +270,9 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "showcard":
                                     Result<String> ShowCardResponse;
                                     if(Splittedcommand.length<3) ShowCardResponse = showCard("","", (String) key.attachment());
-                                    else if(Splittedcommand.length>3) ShowCardResponse = new Result("Too much arguments", null);
+                                    else if(Splittedcommand.length>3) ShowCardResponse = new Result<>("Too much arguments", null);
                                     else ShowCardResponse = showCard(Splittedcommand[1],Splittedcommand[2],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -356,9 +282,10 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     break;
 
                                 case "addcard":
-                                    StringBuilder description = new StringBuilder("");
-                                    for(int i=3; i<Splittedcommand.length;i++) description.append(Splittedcommand[i] + " ");
+                                    StringBuilder description = new StringBuilder();
+                                    for(int i=3; i<Splittedcommand.length;i++) description.append(Splittedcommand[i]).append(" ");
                                     response = addCard(Splittedcommand[1],Splittedcommand[2],description.toString(),(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -372,6 +299,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     if(Splittedcommand.length<5) response = "ProjectName,CardName,InitialList or FinalList are empty";
                                     else if(Splittedcommand.length>5) response = "Too much arguments";
                                     else response = moveCard(Splittedcommand[1],Splittedcommand[2],Splittedcommand[3],Splittedcommand[4],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -383,8 +311,9 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "getcardhistory":
                                     Result<String> getCardHistoryResponse;
                                     if(Splittedcommand.length<3) getCardHistoryResponse = getCardHistory("","", (String) key.attachment());
-                                    else if(Splittedcommand.length>3) getCardHistoryResponse = new Result("Too much arguments", null);
+                                    else if(Splittedcommand.length>3) getCardHistoryResponse = new Result<>("Too much arguments", null);
                                     else getCardHistoryResponse = getCardHistory(Splittedcommand[1],Splittedcommand[2],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -397,6 +326,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     if(Splittedcommand.length<2) response = "ProjectName is empty";
                                     else if(Splittedcommand.length>2) response = "Too much arguments";
                                     else response = cancelProject(Splittedcommand[1],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -410,6 +340,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     if(Splittedcommand.length<2) readChatResponse = new chatINFO("ProjectName is empty",null);
                                     else if(Splittedcommand.length>2) readChatResponse = new chatINFO("Too much arguments",null);
                                     else readChatResponse = readChat(Splittedcommand[1],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -423,6 +354,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     if(Splittedcommand.length<2) sendChatResponse = new chatINFO("ProjectName is empty",null);
                                     else if(Splittedcommand.length>2) sendChatResponse = new chatINFO("Too much arguments",null);
                                     else sendChatResponse = sendChatMsg(Splittedcommand[1],(String) key.attachment());
+                                    //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -451,9 +383,10 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     break;
 
                             }
-                            key.interestOps(SelectionKey.OP_WRITE); //Voglio ascoltare solo le operazioni di scrittura associate a quel client
+                            key.interestOps(SelectionKey.OP_WRITE); //Listening only write operation
                         }
-                        else if (key.isWritable()) { //"Catturo" le richieste di scrittura
+                        else if (key.isWritable()) { //Catching write requests
+                            //SENDING THE RESPONSE
                             SocketChannel client = (SocketChannel) key.channel();
                             Data = this.dataMap.get(client);
                             Iterator<byte[]> items = Data.iterator();
@@ -462,7 +395,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 items.remove();
                                 client.write(ByteBuffer.wrap(item));
                             }
-                            key.interestOps(SelectionKey.OP_READ);
+                            key.interestOps(SelectionKey.OP_READ); //Listening only reading operation
                         }
                     } catch (IOException | CancelledKeyException e) {
                         key.cancel();
@@ -481,56 +414,54 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
         System.out.println("Command requested: register " + nickUtente + " " + password);
         if(nickUtente.isEmpty() || password.isEmpty())
             return "Error: Nickname or Password are empty - user not registered";
-        for(User user : Users)
+        for(User user : Users) //Checking if the user is already registered
             if(user.getNickname().equalsIgnoreCase(nickUtente)) return "Error: " + nickUtente + " already exists";
+
+        //Creating the new User and adding to the User list
         User u = new User(nickUtente,password);
         update(nickUtente, "offline");
         Users.add(u);
-        try {
-            mapper.readTree(userFile);
+        try { //Saving for backup
             mapper.writeValue(userFile, Users);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        } catch (IOException e) { e.printStackTrace(); }
 
         return "User added with success";
     }
 
 
     public LoginResult<NicknameStatusPair> login(String nickUtente, String password) throws IOException {
-        String code = null;
-        LoginResult<NicknameStatusPair> lr;
-        ArrayList<multicastINFO> multicastList = new ArrayList<>();
-        boolean tmp = false;
-        ArrayList<NicknameStatusPair> list = new ArrayList<>();
-        //Checking about nickname, password, empty list ecc...
-        if(nickUtente.isEmpty() || password.isEmpty()) code = "Nickname or Password are empty!";
+        String code = null; //Status code of the login
+        LoginResult<NicknameStatusPair> lr; //Result of login method
+        ArrayList<multicastINFO> multicastList = new ArrayList<>(); //Multicast info of projects that nickUtente is member
+        boolean tmp = false; //True = logged in with success
+        ArrayList<NicknameStatusPair> list = new ArrayList<>(); //List of users in the system (Username - status)
+
+        if(nickUtente.isEmpty() || password.isEmpty()) code = "Nickname or Password are empty!"; //Checking if the nickUtente or Password are empty
         else{
-            if (Users.isEmpty()) code = "Users list is empty!. You need to be registered first.";
+            if (Users.isEmpty()) code = "Users list is empty!. You need to be registered first."; //Checking if the users list is empty
             else{
-                for(User user : Users)
+                for(User user : Users) //Searching the nickUtente in users registered in the system
                 {
-                    if(user.getNickname().equalsIgnoreCase(nickUtente))
-                        if(user.getPassword().equals(password)){
-                            if(user.getStatus().equals("offline")) {
-                                tmp = true;
-                                update(nickUtente, "online");
-                                user.setStatus("online");
-                                for(Project project : Projects)
+                    if(user.getNickname().equalsIgnoreCase(nickUtente)) //Checking if the nickUtente equals the registered user
+                        if(user.getPassword().equals(password)){ //Checking if the password is correct
+                            if(user.getStatus().equals("offline")) { //Checking if the user is offline
+                                tmp = true; //True = logged in with success
+                                update(nickUtente, "online");  //CALLBACKS!
+                                user.setStatus("online"); //Changes the status of user to "ONLINE"
+                                for(Project project : Projects) //Multicast info of projects that user is member
                                     if(project.isMember(nickUtente))
                                         multicastList.add(new multicastINFO(project.getMulticastAddress(),project.getPort()));
                             }
                             else code = "User is already online, please logout first!";
                         } else code = "Wrong user password";
-                    list.add(new NicknameStatusPair(user.getNickname(),user.getStatus()));
+                    list.add(new NicknameStatusPair(user.getNickname(),user.getStatus())); //Creating the list of the system's users
                 }
                 if (!tmp && code == null) code = "User not found in the system, register it first.";
             }
         }
-        //If the checking its ok -> Login , else -> Error code
-        if (tmp) lr = new LoginResult("OK",list,multicastList);
-        else lr = new LoginResult(code,null,null);
+
+        if (tmp) lr = new LoginResult<>("OK",list,multicastList); //If the login went fine -> ok -> Return "ok", list of users, list of all project's multicastInfo
+        else lr = new LoginResult<>(code,null,null);
 
         return lr;
     }
@@ -539,99 +470,112 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     public String logout(String nickUtente) {
         if(nickUtente.isEmpty()) return "Nickname is empty";
         if(Users.isEmpty()) return "Users list is empty!. You need to be logged in first.";
-        for(User user : Users) {
-            if(user.getNickname().equalsIgnoreCase(nickUtente))
-                if(user.getStatus().equalsIgnoreCase("online")){
+        for(User user : Users) { //Searching the nickUtente in users registered in the system
+            if(user.getNickname().equalsIgnoreCase(nickUtente)) //Checking if the nickUtente equals the registered user
+                if(user.getStatus().equalsIgnoreCase("online")){ //Checking if the user is online
                     try {
-                        update(nickUtente,"offline");
+                        update(nickUtente,"offline"); //CALLBACKS!
                     }catch(RemoteException e) { e.printStackTrace(); }
-                    user.setStatus("offline");
+                    user.setStatus("offline"); //Changes the status of user to "OFFLINE"
                     return "ok";
                 } else return "User is already offline -> error";
         }
         return "User doesn't exists";
     }
 
-    public Result<NicknameStatusPair> listUsers() {
-        if(Users.isEmpty()) return new Result("User list is empty!",null);
+    public Result<NicknameStatusPair> listUsers() { //Lists all the users registered in the system
+        if(Users.isEmpty()) return new Result<>("User list is empty!",null);
         ArrayList<NicknameStatusPair> listUsers = new ArrayList<>();
         for(User user : Users)
             listUsers.add(new NicknameStatusPair(user.getNickname(),user.getStatus()));
-        return new Result<NicknameStatusPair>("ok",listUsers);
+        return new Result<>("ok", listUsers);
     }
 
-    public Result<String> listOnlineUsers() {
-        if(Users.isEmpty()) return new Result("User list is empty!",null);
+    public Result<String> listOnlineUsers() { //Lists all the users registered online in the system
+        if(Users.isEmpty()) return new Result<>("User list is empty!",null);
         ArrayList<String> listOnlineUsers = new ArrayList<>();
         for(User user : Users)
             if(user.getStatus().equalsIgnoreCase("online"))
                 listOnlineUsers.add(user.getNickname());
-        if(listOnlineUsers.isEmpty()) return new Result("Online users list is empty!",null);
+        if(listOnlineUsers.isEmpty()) return new Result<>("Online users list is empty!",null);
 
-        return new Result<String>("ok",listOnlineUsers);
+        return new Result<>("ok", listOnlineUsers);
     }
 
     public Result<String> listProjects(String nickUtente) {
-        if(Projects.isEmpty()) return new Result("Project list is empty!",null);
+        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
         ArrayList<String> listUserProjects = new ArrayList<>();
-        for(Project project: Projects)
-            if(project.isMember(nickUtente))
-                listUserProjects.add(project.getID());
+        for(Project project: Projects) //Searching the project
+            if(project.isMember(nickUtente)) //Checks if the nickUtente is a project's member
+                listUserProjects.add(project.getID());  //Creating the list of the projects
 
-        if(listUserProjects.isEmpty()) return new Result("User doesn't participate to any project!",null);
+        if(listUserProjects.isEmpty()) return new Result<>("User doesn't participate to any project!",null);
 
-        return new Result<String>("ok",listUserProjects);
+        return new Result<>("ok", listUserProjects);
     }
 
     public String createProject(String projectName, String nickUtente) {
         if(projectName.isEmpty()) return "ProjectName is empty";
-        for(Project project : Projects)
+        for(Project project : Projects) //Checks if the project already exists
             if(project.getID().equalsIgnoreCase(projectName))
                 return "The project exists already!";
-        String ip = this.MipGenerator.generateIP();
+        String ip = this.MipGenerator.generateIP(); //Generates a random multicast IP
         if(ip.equalsIgnoreCase("error")) return "IP GENERATOR ERROR!";
-        Project project = new Project(projectName,nickUtente,ip,(random.nextInt((65535-1025+1))+1025));
+        int port = random.nextInt((65535-1025+1))+1025; //Generates a random port [1025-65535]
+        Project project = new Project(projectName,nickUtente,ip,port); //Creates a new project
         System.out.println(ip + " " + project.getPort());
-        Projects.add(project);
-        try {
+        Projects.add(project); //Adds the project to the projects list
+        try { //Updates the backup
             mapper.writeValue(projectFile, Projects);
             mapper.writeValue(MipGeneratorFile,MipGenerator);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        try {
+        try { //Callback to the user to update the multicast info
             updateMulticast(project,nickUtente);
         } catch (RemoteException e) { e.printStackTrace(); }
+
+        //Add the server to the multicast group to write cards moves
+        MulticastSocket ms;
+        try {
+            ms = new MulticastSocket(port);
+            ms.joinGroup(InetAddress.getByName(ip));
+            ms.setSoTimeout(2000);
+            Multicastsockets.add(new multicastConnectInfo(ms, ip, port));
+        } catch (IOException e) { e.printStackTrace(); }
+
         return "ok";
     }
 
-    public void generateIP(){
-
-    }
-
-    public String addMember(String projectName, String nickUtente, String addingUser) {
+    public String addMember(String projectName, String nickUtente, String addingUser) { //nickUtente = user to add ---- addingUser = user that adds
         boolean Projectfound = false, userFound = false;
         String code = "ERROR";
         if(projectName.isEmpty() || nickUtente.isEmpty()) return "ProjectName or NickUtente is empty";
         if(Projects.isEmpty()) return "Project list is empty!";
 
-        for(User user : Users)
-            if(user.getNickname().equalsIgnoreCase(nickUtente)) userFound = true;
+        for(User user : Users) //Checking if the member is registered in the system
+            if (user.getNickname().equalsIgnoreCase(nickUtente)) {
+                userFound = true;
+                break;
+            }
         if(!userFound) return "The user is not registered in the system!";
 
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(projectName)) {
-                if(!project.isMember(addingUser)) return "User doesn't participate to any project!";
-                code = project.addMember(nickUtente);
+            if(project.getID().equalsIgnoreCase(projectName)) { //Checks if is the project
+                if(!project.isMember(addingUser)) return "AddingUser isn't member of the project!"; //Checks if the addingUser is member of the project
+                code = project.addMember(nickUtente); //Adds the nickUtente to the project
                 Projectfound = true;
-                try {
-                    mapper.writeValue(projectFile, Projects);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if(code.equalsIgnoreCase("ok")){ //If add went ok, else -> User is already a member of the project
+                    System.out.println("ciao");
+                    try {
+                        mapper.writeValue(projectFile, Projects); //Updating backup info
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        updateMulticast(project,nickUtente); //CALLBACK FOR MULTICASTING INFO TO THE USER ADDED TO THE PROJECT
+                    } catch (RemoteException e) { e.printStackTrace(); }
                 }
-                try {
-                    updateMulticast(project,nickUtente);
-                } catch (RemoteException e) { e.printStackTrace(); }
             }
         if(!Projectfound) return "The project doesn't exist";
 
@@ -640,61 +584,61 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
     public Result<String> showMembers(String projectName, String nickUtente) {
         ArrayList<String> list;
-        if(Projects.isEmpty()) return new Result("Project list is empty!",null);
-        if(projectName.isEmpty()) return new Result("ProjectName is empty",null);
+        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
+        if(projectName.isEmpty()) return new Result<>("ProjectName is empty",null);
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(projectName))
+            if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new Result("User doesn't participate to any project!",null);
-                list = project.getMembers();
-                if(list == null) return new Result("Member list is empty",null);
-                else return new Result("ok",list);
+                if(!project.isMember(nickUtente)) return new Result<>("User doesn't participate to any project!",null); //checking if the user is member of the project
+                list = project.getMembers(); //List of user that are members of the project
+                if(list == null) return new Result<>("Member list is empty",null); //IN CASE OF NULL LIST
+                else return new Result<>("ok",list);
             }
-        return new Result("The project doesn't exist",null);
+        return new Result<>("The project doesn't exist",null);
     }
 
-    public Result<String> showCards(String projectName, String nickUtente) {
-        ArrayList<String> list;
-        if(Projects.isEmpty()) return new Result("Project list is empty!",null);
-        if(projectName.isEmpty()) return new Result("ProjectName is empty",null);
+    public Result<NicknameStatusPair> showCards(String projectName, String nickUtente) {
+        ArrayList<NicknameStatusPair> list;
+        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
+        if(projectName.isEmpty()) return new Result<>("ProjectName is empty",null);
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(projectName))
+            if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new Result("User doesn't participate to any project!",null);
-                list = project.getCardsName();
-                if(list == null) return new Result("Cards list is empty",null);
-                else return new Result("ok",list);
+                if(!project.isMember(nickUtente)) return new Result<>("User doesn't participate to any project!",null); //checking if the user is member of the project
+                list = project.getCardsName(); //List of cards of the project
+                if(list == null) return new Result<>("Cards list is empty",null); //IN CASE OF NULL LIST
+                else return new Result<>("ok",list);
             }
-        return new Result("The project doesn't exist",null);
+        return new Result<>("The project doesn't exist",null);
     }
 
     public Result<String> showCard(String projectName, String cardName, String nickUtente){
         ArrayList<String> info;
-        if(Projects.isEmpty()) return new Result("Project list is empty!",null);
-        if(projectName.isEmpty() || cardName.isEmpty()) return new Result("ProjectName or cardName are empty",null);
+        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
+        if(projectName.isEmpty() || cardName.isEmpty()) return new Result<>("ProjectName or cardName are empty",null);
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(projectName))
+            if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new Result("User doesn't participate to any project!",null);
-                info = project.getCardInfo(cardName);
-                if(info == null) return new Result("Card not found",null);
-                else return new Result("ok",info);
+                if(!project.isMember(nickUtente)) return new Result<>("User doesn't participate to any project!",null); //checking if the user is member of the project
+                info = project.getCardInfo(cardName); //Card info
+                if(info == null) return new Result<>("Card not found",null); //If the card is not in the project -> null info
+                else return new Result<>("ok",info);
             }
-        return new Result("The project doesn't exist",null);
+        return new Result<>("The project doesn't exist",null);
     }
 
     public String addCard(String projectName, String cardName, String description, String nickUtente){
         if(Projects.isEmpty()) return "Project list is empty";
         if(projectName.isEmpty() || cardName.isEmpty()) return "ProjectName or cardName are empty";
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(projectName))
+            if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!";
+                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!"; //checking if the user is member of the project
                 String code = project.addCard(cardName,description);
-                try {
-                    mapper.writeValue(projectFile, Projects);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if(code.equalsIgnoreCase("ok")){ //if card added with success
+                    try {
+                        mapper.writeValue(projectFile, Projects); //Updating backup info
+                    } catch (IOException e) { e.printStackTrace(); }
                 }
                 return code;
             }
@@ -705,14 +649,31 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     public String moveCard(String projectName, String cardName, String fromList, String movetoList, String nickUtente) {
         if(Projects.isEmpty()) return "Project list is empty";
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(projectName))
+            if(project.getID().equalsIgnoreCase(projectName))  //Searching project
             {
-                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!";
+                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!"; //checking if the user is member of the project
                 String code = project.moveCard(cardName,fromList,movetoList);
-                try {
-                    mapper.writeValue(projectFile, Projects);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if(code.equalsIgnoreCase("ok")){ //If the card moved with success
+                    try {
+                        mapper.writeValue(projectFile, Projects); //Updating backup info
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    //Server sends in the chat the update
+                    String message = "Card: " + cardName +" moved from list " + fromList + " to list " + movetoList;
+                    byte[] buffer = message.getBytes();
+                    DatagramPacket datagram;
+                    System.out.println("ok: sending update card move msg -> " + message);
+                    for(multicastConnectInfo ms : Multicastsockets) {
+                        if (ms.getIpAddress().equalsIgnoreCase(project.getMulticastAddress())) {
+                            try {
+                                datagram = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(ms.getIpAddress()), ms.getPort());
+                                ms.getSocket().send(datagram);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 }
                 return code;
             }
@@ -721,27 +682,27 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
     public Result<String> getCardHistory(String projectName, String cardName, String nickUtente) {
         ArrayList<String> history;
-        if(Projects.isEmpty()) return new Result("Project list is empty!",null);
-        if(projectName.isEmpty() || cardName.isEmpty()) return new Result("ProjectName or cardName are empty",null);
-        for(Project project : Projects)
+        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
+        if(projectName.isEmpty() || cardName.isEmpty()) return new Result<>("ProjectName or cardName are empty",null);
+        for(Project project : Projects) //Searching project
             if(project.getID().equalsIgnoreCase(projectName))
             {
-                if(!project.isMember(nickUtente)) return new Result("User doesn't participate to any project!",null);
-                history = project.getCardHistory(cardName);
-                if(history == null) return new Result("Card not found",null);
-                else return new Result("ok",history);
+                if(!project.isMember(nickUtente)) return new Result<>("User doesn't participate to any project!",null); //checking if the user is member of the project
+                history = project.getCardHistory(cardName); //Getting card history
+                if(history == null) return new Result<>("Card not found",null); //In case card is not found
+                else return new Result<>("ok",history);
             }
-        return new Result("The project doesn't exist",null);
+        return new Result<>("The project doesn't exist",null);
     }
 
     public chatINFO readChat(String ProjectName, String nickUtente) {
         if(Projects.isEmpty()) return new chatINFO("Project list is empty!",null);
         if(ProjectName.isEmpty()) return new chatINFO("ProjectName is empty",null);
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(ProjectName))
+            if(project.getID().equalsIgnoreCase(ProjectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new chatINFO("User doesn't participate to any project!",null);
-                return new chatINFO("ok",project.getMulticastAddress());
+                if(!project.isMember(nickUtente)) return new chatINFO("User doesn't participate to any project!",null); //checking if the user is member of the project
+                return new chatINFO("ok",project.getMulticastAddress()); //Getting chat info
             }
         return new chatINFO("The project doesn't exists", null);
     }
@@ -750,10 +711,10 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
         if(Projects.isEmpty()) return new chatINFO("Project list is empty!",null);
         if(ProjectName.isEmpty()) return new chatINFO("ProjectName is empty",null);
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(ProjectName))
+            if(project.getID().equalsIgnoreCase(ProjectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new chatINFO("User doesn't participate to any project!",null);
-                return new chatINFO("ok",project.getMulticastAddress());
+                if(!project.isMember(nickUtente)) return new chatINFO("User doesn't participate to any project!",null); //checking if the user is member of the project
+                return new chatINFO("ok",project.getMulticastAddress());  //Getting chat info
             }
         return new chatINFO("The project doesn't exists", null);
     }
@@ -761,28 +722,46 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     public String cancelProject(String projectName, String nickUtente) {
         if(Projects.isEmpty()) return "Project list is empty";
         for(Project project : Projects)
-            if(project.getID().equalsIgnoreCase(projectName))
+            if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!";
-                if(!project.isDone()) return "All cards in the project are not in status: DONE";
-                Projects.remove(project);
+                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!"; //checking if the user is member of the project
+                if(!project.isDone()) return "All cards in the project are not in status: DONE"; //Checking if all card are in status "DONE"
+                Projects.remove(project); //Removing project
                 try {
-                    mapper.writeValue(projectFile, Projects);
+                    if(Projects.isEmpty()){ //Reset multicast IP generator if project list is empty
+                        MipGenerator.reset();
+                        mapper.writeValue(MipGeneratorFile, MipGenerator);
+                    }
+                    mapper.writeValue(projectFile, Projects); //Updating backup
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                project.cancelProjectDir();
                 try {
-                    updateMulticastALL(project);
+                    updateMulticastALL(project); //CALLBACK MULTICAST INFO
                 } catch (RemoteException e) { e.printStackTrace(); }
+                //SERVER LEAVES GROUP
+                multicastConnectInfo cancelMS = null;
+                for(multicastConnectInfo ms : Multicastsockets)
+                    if(ms.getIpAddress().equalsIgnoreCase(project.getMulticastAddress())) {
+                        try {
+                            ms.getSocket().leaveGroup(InetAddress.getByName(project.getMulticastAddress()));
+                            cancelMS = ms;
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                if(cancelMS!=null) Multicastsockets.remove(cancelMS);
+
                 return "ok";
             }
         return "The project doesn't exist";
     }
 
 
+    //RMI CALLBACKS METHODS
 
-
-    public synchronized void registerForCallback (NotifyEventInterface ClientInterface, String nickUtente) throws RemoteException {
+    public synchronized void registerForCallback (NotifyEventInterface ClientInterface, String nickUtente) throws RemoteException { //CALLBACK REGISTER
         boolean contains = clients.stream()
                 .anyMatch(client -> ClientInterface.equals(client.getClient()));
         if (!contains){
@@ -791,7 +770,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
         }
     }
 
-    public synchronized void unregisterForCallback(NotifyEventInterface Client) throws RemoteException {
+    public synchronized void unregisterForCallback(NotifyEventInterface Client) throws RemoteException { //CALLBACK UNREGISTER
         CallBackInfo user = clients.stream()
                 .filter(client -> Client.equals(client.getClient()))
                 .findAny()
@@ -803,29 +782,19 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
         else System.out.println("CALLBACK SYSTEM: Unable to unregister client.");
     }
 
-    public void update(String nickName, String status) throws RemoteException {
+    public void update(String nickName, String status) throws RemoteException { //METHOD USED TO UPDATE CLIENTS USERS LIST
         doCallbacks(nickName,status);
     }
-
-    public void updateMulticast(Project project,String nickName) throws RemoteException {
-        doChatCallBacks(project,nickName);
-    }
-
-    public void updateMulticastALL(Project project) throws RemoteException {
-        doChatCallBacksALL(project);
-    }
-
-    private synchronized void doChatCallBacksALL(Project project) throws RemoteException {
+    private synchronized void doCallbacks(String nickName, String status) throws RemoteException { //METHOD USED TO UPDATE CLIENTS USERS LIST
         LinkedList<NotifyEventInterface> errors = new LinkedList<>();
         System.out.println("CALLBACK SYSTEM: Starting callbacks.");
-        Iterator i = clients.iterator( );
-        while (i.hasNext()) {
-            CallBackInfo callbackinfoUser = (CallBackInfo) i.next();
+        for (CallBackInfo callbackinfoUser : clients) {
             NotifyEventInterface client = callbackinfoUser.getClient();
             try {
-                if(project.isMember(callbackinfoUser.getuserNickname()))
-                    client.notifyEventProjectCancel(project.getMulticastAddress(), project.getPort());
-            }catch (RemoteException e) { errors.add(client);}
+                client.notifyEvent(nickName, status);
+            } catch (RemoteException e) {
+                errors.add(client);
+            }
         }
         if(!errors.isEmpty()) {
             System.out.println("CALLBACK SYSTEM: Unregistering clients that caused an error!");
@@ -834,29 +803,35 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
         System.out.println("CALLBACK SYSTEM: Callbacks complete.");
     }
 
-    private synchronized void doChatCallBacks(Project project,String nickName) throws RemoteException {
-        LinkedList<NotifyEventInterface> errors = new LinkedList<>();
+
+    public void updateMulticast(Project project,String nickName) throws RemoteException { //METHOD USED TO UPDATE CLIENT'S MULTICAST INFO LIST
+        doChatCallBacks(project,nickName);
+    }
+    private synchronized void doChatCallBacks(Project project,String nickName) throws RemoteException { //METHOD USED TO UPDATE CLIENT'S MULTICAST INFO LIST
         System.out.println("CALLBACK SYSTEM: Starting callbacks.");
-        Iterator i = clients.iterator( );
-        while (i.hasNext()) {
-            CallBackInfo callbackinfoUser = (CallBackInfo) i.next();
+        for (CallBackInfo callbackinfoUser : clients) {
             NotifyEventInterface client = callbackinfoUser.getClient();
-            if(callbackinfoUser.getuserNickname().equalsIgnoreCase(nickName))
+            if (callbackinfoUser.getuserNickname().equalsIgnoreCase(nickName))
                 client.notifyEventChat(project.getMulticastAddress(), project.getPort());
         }
         System.out.println("CALLBACK SYSTEM: Callbacks complete.");
     }
 
-    private synchronized void doCallbacks(String nickName, String status) throws RemoteException {
+
+    public void updateMulticastALL(Project project) throws RemoteException { //METHOD USED TO UPDATE ALL CLIENT'S MULTICAST INFO LIST IN CASE OF PROJECT CANCEL
+        doChatCallBacksALL(project);
+    }
+    private synchronized void doChatCallBacksALL(Project project) throws RemoteException { //METHOD USED TO UPDATE ALL CLIENT'S MULTICAST INFO LIST IN CASE OF PROJECT CANCEL
         LinkedList<NotifyEventInterface> errors = new LinkedList<>();
         System.out.println("CALLBACK SYSTEM: Starting callbacks.");
-        Iterator i = clients.iterator( );
-        while (i.hasNext()) {
-            CallBackInfo callbackinfoUser = (CallBackInfo) i.next();
+        for (CallBackInfo callbackinfoUser : clients) {
             NotifyEventInterface client = callbackinfoUser.getClient();
             try {
-                client.notifyEvent(nickName,status);
-            }catch (RemoteException e) { errors.add(client);}
+                if (project.isMember(callbackinfoUser.getuserNickname()))
+                    client.notifyEventProjectCancel(project.getMulticastAddress(), project.getPort());
+            } catch (RemoteException e) {
+                errors.add(client);
+            }
         }
         if(!errors.isEmpty()) {
             System.out.println("CALLBACK SYSTEM: Unregistering clients that caused an error!");
@@ -866,11 +841,10 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     }
 
 
-
-
     public static void main(String[] args){
         ServerMain server = new ServerMain();
         try{
+            //RMI SETUP
             ServerMainInterfaceRMI stub = (ServerMainInterfaceRMI) UnicastRemoteObject.exportObject(server, 0);
             LocateRegistry.createRegistry(RMIport);
             Registry registry = LocateRegistry.getRegistry(RMIport);

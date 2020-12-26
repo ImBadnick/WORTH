@@ -15,15 +15,14 @@ public class User {
         this.status = "offline";
     }
 
+    @JsonIgnore
+    public void setStatus(String status) { this.status = status; }
     public void setNickName(String nickname){  this.nickname = nickname; }
     public void setPassword(String password){  this.password = password; }
 
     @JsonIgnore
-    public void setStatus(String status) { this.status = status; }
-
+    public String getStatus() { return this.status; }
     public String getNickname(){ return this.nickname;}
     public String getPassword() { return this.password; }
 
-    @JsonIgnore
-    public String getStatus() { return this.status; }
 }

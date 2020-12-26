@@ -1,3 +1,4 @@
+import ProjectUtils.*;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.*;
@@ -13,54 +14,38 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
 
+
 public class ClientMain extends RemoteObject implements NotifyEventInterface{
     private ArrayList<NicknameStatusPair> systemUsers; //Listing users in the system
     private static final int RMIport = 16617; //RMI port
     private static final int TCPport = 20700; //TCP port for connection
     private static final String ServerAddress = "127.0.0.1";
     private String userName; //Saving the logged in userName
-    private ArrayList<multicastClientInfo> Multicastsockets; //List of MulticastSocket Info
-
-    public class multicastClientInfo{ //Class used to save the multicast information retrieved from the server.
-        private MulticastSocket socket; //Multicast Socket
-        private String address; //Multicast Address
-        private int port; //Multicast Port
-
-        public multicastClientInfo(MulticastSocket socket, String address, int port){
-            this.socket = socket;
-            this.address = address;
-            this.port = port;
-        }
-
-        public void setAddress(String address) { this.address = address; }
-        public void setSocket(MulticastSocket socket) { this.socket = socket; }
-        public void setPort(int port) { this.port = port; }
-
-        public MulticastSocket getSocket() { return socket; }
-        public String getAddress() { return address; }
-        public int getPort() { return port; }
-    }
+    private final ArrayList<multicastConnectInfo> Multicastsockets; //List of MulticastSocket Info
 
     public ClientMain(){
         super();
-        this.userName = null;
-        this.Multicastsockets = new ArrayList<>();
+        this.userName = null; //Current userName connected
+        this.Multicastsockets = new ArrayList<>(); //List of multicast sockets for projects chat
     }
 
     public void start(){
-        boolean result;
-        boolean loggedIn = false;
+        boolean loggedIn = false; //Checks if the
         boolean cycle = true;
-        SocketChannel socketChannel;
+        SocketChannel socketChannel; //SocketChannel for TCP
         try {
             //Setup RMI
             Registry registry = LocateRegistry.getRegistry(RMIport);
             ServerMainInterfaceRMI stub = (ServerMainInterfaceRMI) registry.lookup("ServerRMI");
-            Scanner in = new Scanner(System.in);
+            //Input scanner
+            Scanner in = new Scanner(System.in); //
+            //Setup server connection
             socketChannel = SocketChannel.open(); //Apertura socket
-            socketChannel.connect(new InetSocketAddress(ServerAddress, TCPport)); //Connessione al server
+            socketChannel.connect(new InetSocketAddress(ServerAddress, TCPport));
+            //Setup Callback System
             NotifyEventInterface callbackObj = this;
             NotifyEventInterface stubCallBack = (NotifyEventInterface) UnicastRemoteObject.exportObject(callbackObj, 0);
+            //Buffer for receive datagrams
             byte[] buffer = new byte[8192];
             while(cycle){
                 String command = in.nextLine();
@@ -71,49 +56,49 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         register(splittedCommand,stub);
                         break;
                     case "login":
-                        if(loggedIn){
+                        if(loggedIn){ //Checks if the client is logged in the system
                             System.out.println("You are already logged in! Logout before please.");
                             break;
                         }
-                        result = login(command,socketChannel);
-                        if (result){
+                        boolean result = login(command,socketChannel);
+                        if (result){ //If the login went ok -> Register for callbacks
                             loggedIn = true;
                             System.out.println("Registering for callback");
-                            stub.registerForCallback(stubCallBack,splittedCommand[1]);
+                            stub.registerForCallback(stubCallBack,splittedCommand[1]); //Register for callbacks
                         }
                         break;
 
                     case "logout":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
                         result = logout(command,socketChannel);
-                        if (result){
+                        if (result){ //if the logout went ok -> Unregister for callbacks
                             loggedIn = false;
                             System.out.println("Unregistering for callback");
-                            stub.unregisterForCallback(stubCallBack);
+                            stub.unregisterForCallback(stubCallBack); //Unregister for callbacks
                         }
                         break;
 
                     case "listusers":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
-                        listusers(command,socketChannel);
+                        listusers();
                         break;
 
                     case "listonlineusers":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
-                        listonlineusers(command,socketChannel);
+                        listonlineusers();
                         break;
 
                     case "listprojects":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -121,7 +106,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "createproject":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -129,7 +114,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "addmember":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -137,7 +122,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "showmembers":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -145,7 +130,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "showcards":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -153,7 +138,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "showcard":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -161,7 +146,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "addcard":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -171,7 +156,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "movecard":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -179,7 +164,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "getcardhistory":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -187,7 +172,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "cancelproject":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -195,7 +180,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "readchat":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
@@ -203,20 +188,24 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         break;
 
                     case "sendchatmsg":
-                        if(!loggedIn) {
+                        if(!loggedIn) { //Checks if the client is logged in the system
                             System.out.println("You need to be logged in the system before!");
                             break;
                         }
                         sendChatmsg(command,in, socketChannel);
                         break;
 
-                    case "exit":
+                    case "help":
+                        help();
+                        break;
+
+                    case "exit": //If the command is "exit", client shutdown
                         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
                         System.out.println("Doing the exit!");
                         cycle = false;
                         break;
 
-                    default:
+                    default: //All others commands
                         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
                         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
                         String response = ((String) ois.readObject()).trim();
@@ -240,8 +229,9 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
 
     public void register(String[] splittedCommand, ServerMainInterfaceRMI stub) throws RemoteException {
         String result;
-        if(splittedCommand.length!=3) result=stub.register("","");
-        else result = stub.register(splittedCommand[1],splittedCommand[2]);
+        if(splittedCommand.length<3) result=stub.register("","");
+        else if(splittedCommand.length>3) result = "Too much arguments";
+        else result = stub.register(splittedCommand[1],splittedCommand[2]); //Calls the RMI method of the Server for registration
         System.out.println(result);
     }
 
@@ -255,9 +245,9 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         loginResult = (LoginResult) ois.readObject();
         if(loginResult.getCode().equalsIgnoreCase("OK")) {
             System.out.println("OK");
-            systemUsers = loginResult.getList();
+            systemUsers = loginResult.getList(); //Gets the registered user list
             userName = splitcommand[1];
-            if(loginResult.getMulticastinfo()!=null){
+            if(loginResult.getMulticastinfo()!=null){ //Prepares the projects chats
                 for(multicastINFO minfo : loginResult.getMulticastinfo())
                 {
                     MulticastSocket ms;
@@ -265,7 +255,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
                         ms = new MulticastSocket(minfo.getPort());
                         ms.joinGroup(InetAddress.getByName(minfo.getIpAddress()));
                         ms.setSoTimeout(2000);
-                        Multicastsockets.add(new multicastClientInfo(ms, minfo.getIpAddress(), minfo.getPort()));
+                        Multicastsockets.add(new multicastConnectInfo(ms, minfo.getIpAddress(), minfo.getPort()));
                     } catch (IOException e) { e.printStackTrace(); }
                 }
             }
@@ -276,7 +266,6 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
     }
 
     public boolean logout(String command, SocketChannel socketChannel) throws IOException, ClassNotFoundException {
-        String[] splitcommand = command.split(" ");
         //Send
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
@@ -291,36 +280,17 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         return false;
     }
 
-    public void listusers(String command,SocketChannel socketChannel) throws IOException, ClassNotFoundException {
-        //Send
-        socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
-        //Receive
-        ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        Result<NicknameStatusPair> result = (Result) ois.readObject();
-        //Printing
-        if(result.getList()==null){
-            System.out.println(result.getCode());
-            return;
-        }
+    public void listusers() {
         System.out.println("Printing the list of users and their status:");
-        for (NicknameStatusPair user : result.getList())
+        for (NicknameStatusPair user : systemUsers)
             System.out.println("- User: " + user.getNickname() + " status: " + user.getStatus());
     }
 
-    public void listonlineusers(String command,SocketChannel socketChannel) throws IOException, ClassNotFoundException {
-        //Send
-        socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
-        //Receive
-        ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        Result<String> result = (Result) ois.readObject();
-        //Printing
-        if(result.getList()==null){
-            System.out.println(result.getCode());
-            return;
-        }
+    public void listonlineusers() {
         System.out.println("Printing the list of online users:");
-        for (String user : result.getList())
-            System.out.println("- User: " + user);
+        for (NicknameStatusPair user : systemUsers)
+            if(user.getStatus().equalsIgnoreCase("online"))
+                System.out.println("- User: " + user.getNickname());
     }
 
     public void listprojects(String command,SocketChannel socketChannel) throws IOException, ClassNotFoundException {
@@ -345,8 +315,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
         String result = ((String) ois.readObject()).trim();
-        if(result.equalsIgnoreCase("OK")) System.out.println("OK");
-        else System.out.println(result);
+        System.out.println(result);
     }
 
     public void addMember(String command,SocketChannel socketChannel) throws IOException, ClassNotFoundException {
@@ -355,8 +324,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
         String result = ((String) ois.readObject()).trim();
-        if(result.equalsIgnoreCase("OK")) System.out.println("OK");
-        else System.out.println(result);
+        System.out.println(result);
     }
 
     public void showMembers(String command,SocketChannel socketChannel) throws IOException, ClassNotFoundException {
@@ -380,15 +348,15 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        Result<String> result = (Result) ois.readObject();
+        Result<NicknameStatusPair> result = (Result) ois.readObject();
         //Printing
         if(result.getList()==null){
             System.out.println(result.getCode());
             return;
         }
         System.out.println("Printing the list of cards in the project:");
-        for (String card : result.getList())
-            System.out.println("- Card: " + card);
+        for (NicknameStatusPair card : result.getList())
+            System.out.println("- Card: " + card.getNickname() + " status: " + card.getStatus());
     }
 
     public void showCard(String command,SocketChannel socketChannel) throws IOException, ClassNotFoundException {
@@ -420,7 +388,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
             return;
         }
         command = command.trim();
-        command = new StringBuilder().append(command).append(" ").append(description).toString();
+        command = command + " " + description;
         command = command.trim();
         //Send
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
@@ -474,17 +442,17 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        chatINFO result = (chatINFO) ois.readObject();
+        chatINFO result = (chatINFO) ois.readObject(); //Gets the multicast address and port of the project
         if(result.getCode().equalsIgnoreCase("ok"))
         {
             System.out.println(" ----------- Reading chat ------------- ");
-            for(multicastClientInfo ms : Multicastsockets) {
-                if (ms.getAddress().equalsIgnoreCase(result.getIpAddress())) {
+            for(multicastConnectInfo ms : Multicastsockets) { //Reads the messages on the right MulticastSocket
+                if (ms.getIpAddress().equalsIgnoreCase(result.getIpAddress())) {
                     while(true){
                         dp = new DatagramPacket(buffer, buffer.length);
                         try{
                             ms.getSocket().receive(dp);
-                            String s = new String(dp.getData());
+                            String s = new String(dp.getData(), 0, dp.getLength());
                             System.out.println(s);
                         }catch(SocketTimeoutException e) {
                             System.out.println(" ----- No more msg, Finished ------- ");
@@ -509,19 +477,19 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        chatINFO result = (chatINFO) ois.readObject();
+        chatINFO result = (chatINFO) ois.readObject(); //Gets the multicast address and port of the project
         if(result.getCode().equalsIgnoreCase("ok"))
         {
             System.out.println("ok: sending message -> " + message);
-            for(multicastClientInfo ms : Multicastsockets) {
-                if (ms.getAddress().equalsIgnoreCase(result.getIpAddress())) {
-                    datagram = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(ms.getAddress()), ms.getPort());
+            for(multicastConnectInfo ms : Multicastsockets) { //Sends the message to the right MulticastSocket
+                if (ms.getIpAddress().equalsIgnoreCase(result.getIpAddress())) {
+                    datagram = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(ms.getIpAddress()), ms.getPort());
                     ms.getSocket().send(datagram);
                 }
             }
         }
         else{
-            System.out.println("Couldnt send the msg");
+            System.out.println("Couldn't send the msg");
             System.out.println("ERROR: " + result.getCode());
         }
     }
@@ -536,8 +504,31 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         System.out.println(result);
     }
 
+    public void help(){
+        System.out.println("----------------- Commands syntax -----------------");
+        System.out.println("ATTENTION: ALL THE COMMANDS ARE NOT CASE SENSITIVE!");
+        System.out.println("register 'nickUtente' 'password' -> Command used to register a new user to the system");
+        System.out.println("login 'nickUtente' 'password' -> Command used to login in the system with a specific user");
+        System.out.println("logout 'nickUtente' -> Command used to logout from a specific user");
+        System.out.println("listUsers -> Command used to list the users registered in the system");
+        System.out.println("listOnlineUsers -> Command used to list the users that are online in the system");
+        System.out.println("listProjects -> Command used to list the projects that the user is member");
+        System.out.println("createProject 'projectName' -> Command used to create a new project");
+        System.out.println("addMember 'projectName' 'nickUtente' -> Command used to add a user as a member in the project");
+        System.out.println("showMembers 'projectName' -> Command used to show the members of the project");
+        System.out.println("showCards 'projectName' -> Command used to show the cards of the project");
+        System.out.println("showCard 'projectName' -> Command used to show the info of a specific card in the project");
+        System.out.println("addCard 'projectName' 'cardName' -> Command used to add a new card to the project");
+        System.out.println("moveCard 'projectName' 'cardName' 'StartingList' 'DestinationList' -> Command used to move a card from a list to another (POSSIBLE LISTS: TODO, INPROGRESS; TOBEREVISED, DONE)");
+        System.out.println("getCardHistory 'projectName' 'cardName' -> Command used to get the history of the movements of a card in the project");
+        System.out.println("readChat 'projectName' -> Command used to read the messages sent in the project's chat");
+        System.out.println("sendchatmsg 'projectName' -> Command used to send a message in the project's chat");
+        System.out.println("cancelProject 'projectName' -> Command used to cancel a project in the system");
+        System.out.println("----------------- Commands syntax -----------------");
+    }
 
-    public void notifyEvent(String nickName, String status) throws RemoteException {
+
+    public void notifyEvent(String nickName, String status) throws RemoteException { //Method used to update registered user list and their status
         boolean found = false;
         String returnMessage = "Update event received: " + nickName + " " + status;
         System.out.println(returnMessage);
@@ -549,7 +540,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         if(!found) systemUsers.add(new NicknameStatusPair(nickName,status));
     }
 
-    public void notifyEventChat(String address, int port){
+    public void notifyEventChat(String address, int port){ //Method used to update the multicast projects info
         String returnMessage = "Update event received: " + address + " " + port;
         System.out.println(returnMessage);
         MulticastSocket ms;
@@ -557,37 +548,30 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
             ms = new MulticastSocket(port);
             ms.joinGroup(InetAddress.getByName(address));
             ms.setSoTimeout(2000);
-            Multicastsockets.add(new multicastClientInfo(ms,address,port));
+            Multicastsockets.add(new multicastConnectInfo(ms, address, port));
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    public void notifyEventProjectCancel(String address, int port){
+    public void notifyEventProjectCancel(String address, int port){ //Method used to update the multicast projects info when a project get canceled
+        multicastConnectInfo cancelMS = null;
         String returnMessage = "Cancel project update event received: " + address + " " + port;
         System.out.println(returnMessage);
-        for(multicastClientInfo ms : Multicastsockets)
-            if(ms.getAddress().equalsIgnoreCase(address)) {
+        for(multicastConnectInfo ms : Multicastsockets)
+            if(ms.getIpAddress().equalsIgnoreCase(address)) {
                 try {
                     ms.getSocket().leaveGroup(InetAddress.getByName(address));
+                    cancelMS = ms;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
+        if(cancelMS!=null) Multicastsockets.remove(cancelMS);
     }
 
-
-    public void printUserList(){
-        Iterator i = systemUsers.iterator( );
-        while (i.hasNext()) {
-            NicknameStatusPair user = (NicknameStatusPair) i.next();
-            System.out.println("User: " + user.getNickname() + " status: " + user.getStatus());
-        }
-    }
 
     public static void main(String[] args){
         ClientMain client = new ClientMain();
         client.start();
 
     }
-
-
 }

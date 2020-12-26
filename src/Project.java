@@ -1,11 +1,15 @@
+import ProjectUtils.NicknameStatusPair;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Comparator;
 
 @JsonPropertyOrder({ "id", "Cards", "TodoCards", "InProgressCards", "ToBeRevisedCards", "DoneCards", "Members", "MulticastAddress", "port" })
 public class Project {
@@ -22,7 +26,7 @@ public class Project {
     @JsonIgnore
     private File projectDir;
     @JsonIgnore
-    private ObjectMapper mapper;
+    private final ObjectMapper mapper;
 
 
     public Project(String id,String nickUtente,String MulticastAddress, int port) {
@@ -36,6 +40,7 @@ public class Project {
         this.MulticastAddress = MulticastAddress;
         this.port = port;
         this.mapper = new ObjectMapper();
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
         Members.add(nickUtente);
         this.dirPath = "./Backup/" + id;
         projectDir = new File(dirPath);
@@ -44,27 +49,7 @@ public class Project {
 
     public Project() {
         this.mapper = new ObjectMapper();
-    }
-
-
-    public String getID(){ return this.id; }
-
-    public File getProjectDir() {
-        return projectDir;
-    }
-
-    public void setDirPath(String dirPath) {
-        this.dirPath = dirPath;
-        projectDir = new File(dirPath);
-        if(!projectDir.exists()) projectDir.mkdir();
-    }
-
-    public String getDirPath() {
-        return dirPath;
-    }
-
-    public void setProjectDir(File projectDir) {
-        this.projectDir = projectDir;
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
     }
 
     public boolean isMember(String nickname){
@@ -81,42 +66,21 @@ public class Project {
         return "ok";
     }
 
-    public ArrayList<String> getMembers(){
-        if(Members.isEmpty()) return null;
-        return (ArrayList<String>) this.Members.clone();
-    }
-
-    @JsonIgnore
-    public ArrayList<String> getCardsName(){
-        if(Cards.isEmpty()) return null;
-        ArrayList<String> list = new ArrayList<>();
-        for(Card card : Cards)
-            list.add(card.getName());
-        return list;
-    }
-
-    public ArrayList<Card> getCards(){
-        return this.Cards;
-    }
-
-
-    public ArrayList<String> getCardInfo(String cardName){
-        if(Cards.isEmpty()) return null;
-        ArrayList<String> info = null;
-        for(Card card : Cards)
-            if(card.getName().equalsIgnoreCase(cardName))
-                info = card.getInfo();
-        return info;
-    }
-
     public String addCard(String cardName,String description){
         for(Card card : Cards)
-            if(card.getName().equalsIgnoreCase(cardName))
+            if(card.getName().equalsIgnoreCase(cardName)) //Checks if the card already exists in the project
                 return "Card already exists in the project!";
         Card card = new Card(cardName,description);
         Cards.add(card);
         TodoCards.add(cardName);
+        //Create card file info
         File cardFile = new File(projectDir + "/" + cardName + ".json");
+        if(!cardFile.exists()) {
+            try {
+                cardFile.createNewFile();
+            } catch (IOException e) { e.printStackTrace(); }
+        }
+        //Backup card file
         try {
             mapper.writeValue(cardFile, card);
         } catch (IOException e) {
@@ -130,7 +94,10 @@ public class Project {
             Card.cardStatus.valueOf(fromList.toUpperCase());
         }catch(IllegalArgumentException ex){ return "Not a valid fromList";}
         for(Card card : Cards)
-            if(card.getName().equalsIgnoreCase(cardName)) {
+            if(card.getName().equalsIgnoreCase(cardName)) { //Searching the card
+                //MOVING THE CARD FROM fromlist TO tolist
+                if (!toList.equalsIgnoreCase("todo") && !toList.equalsIgnoreCase("inprogress") && !toList.equalsIgnoreCase("toberevised") && !toList.equalsIgnoreCase("done"))
+                    return "Error to list";
                 switch (card.getCurrentList().toLowerCase()) {
                     case "todo":
                         if (!fromList.equalsIgnoreCase("todo")) return "Error from list!";
@@ -175,7 +142,7 @@ public class Project {
                         if (!fromList.equalsIgnoreCase("done")) return "Error from list!";
                         return "Can't move card from: " + fromList + " to: " + toList;
                 }
-                File cardFile = new File(projectDir + "/" + cardName + ".json");
+                File cardFile = new File(projectDir + "/" + card.getName() + ".json");
                 try {
                     mapper.writeValue(cardFile, card);
                 } catch (IOException e) {
@@ -186,7 +153,35 @@ public class Project {
         return "Card not found";
     }
 
-    public ArrayList<String> getCardHistory(String cardName){
+
+    @JsonIgnore
+    public ArrayList<NicknameStatusPair> getCardsName(){ //Get all the cards names in the project
+        if(Cards.isEmpty()) return null;
+        ArrayList<NicknameStatusPair> list = new ArrayList<>();
+        for(Card card : Cards)
+            list.add(new NicknameStatusPair(card.getName(),card.getCurrentList()));
+        return list;
+    }
+
+    @JsonIgnore
+    public boolean isDone(){ //Checks if all the cards status are "DONE"
+        if(Cards.isEmpty()) return true;
+        for(Card card : Cards)
+            if(!card.getCurrentList().equalsIgnoreCase("done")) return false;
+        return true;
+    }
+
+    @JsonIgnore
+    public void cancelProjectDir(){
+        try {
+            Files.walk(projectDir.toPath())
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    public ArrayList<String> getCardHistory(String cardName){ //Gets the history list of the card
         if(Cards.isEmpty()) return null;
         ArrayList<String> history = null;
         for(Card card : Cards)
@@ -195,70 +190,57 @@ public class Project {
         return history;
     }
 
-    @JsonIgnore
-    public boolean isDone(){
-        if(Cards.isEmpty()) return true;
+    public ArrayList<String> getCardInfo(String cardName){ //Gets the card informations
+        if(Cards.isEmpty()) return null;
+        ArrayList<String> info = null;
         for(Card card : Cards)
-            if(!card.getCurrentList().equalsIgnoreCase("done")) return false;
-        return true;
+            if(card.getName().equalsIgnoreCase(cardName))
+                info = card.getInfo();
+        return info;
     }
 
+    public ArrayList<String> getMembers(){ //Gets the members in the project
+        if(Members.isEmpty()) return null;
+        return (ArrayList<String>) this.Members.clone();
+    }
+
+    public String getID(){ return this.id; }
+    public File getProjectDir() {return projectDir; }
+    public String getDirPath() {
+        return dirPath;
+    }
+    public ArrayList<Card> getCards(){
+        return this.Cards;
+    }
+    public ArrayList<String> getDoneCards() { return DoneCards; }
     public int getPort(){
         return this.port;
     }
     public String getMulticastAddress(){
         return this.MulticastAddress;
     }
+    public ArrayList<String> getInProgressCards() { return InProgressCards; }
+    public ArrayList<String> getToBeRevisedCards() { return ToBeRevisedCards; }
+    public ArrayList<String> getTodoCards() { return TodoCards; }
 
-    public ArrayList<String> getDoneCards() {
-        return DoneCards;
+    public void setDirPath(String dirPath) {
+        this.dirPath = dirPath;
+        projectDir = new File(dirPath);
+        if(!projectDir.exists()) projectDir.mkdir();
     }
+    public void setProjectDir(File projectDir) {
+        this.projectDir = projectDir;
+    }
+    public void setCards(ArrayList<Card> cards) { Cards = cards; }
+    public void setDoneCards(ArrayList<String> doneCards) { DoneCards = doneCards; }
+    public void setId(String id) { this.id = id; }
+    public void setInProgressCards(ArrayList<String> inProgressCards) { InProgressCards = inProgressCards; }
+    public void setMembers(ArrayList<String> members) { Members = members; }
+    public void setTodoCards(ArrayList<String> todoCards) { TodoCards = todoCards; }
+    public void setToBeRevisedCards(ArrayList<String> toBeRevisedCards) { ToBeRevisedCards = toBeRevisedCards; }
+    public void setMulticastAddress(String multicastAddress) { MulticastAddress = multicastAddress; }
+    public void setPort(int port) { this.port = port; }
 
-    public ArrayList<String> getInProgressCards() {
-        return InProgressCards;
-    }
 
-    public ArrayList<String> getToBeRevisedCards() {
-        return ToBeRevisedCards;
-    }
 
-    public ArrayList<String> getTodoCards() {
-        return TodoCards;
-    }
-
-    public void setCards(ArrayList<Card> cards) {
-        Cards = cards;
-    }
-
-    public void setDoneCards(ArrayList<String> doneCards) {
-        DoneCards = doneCards;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public void setInProgressCards(ArrayList<String> inProgressCards) {
-        InProgressCards = inProgressCards;
-    }
-
-    public void setMembers(ArrayList<String> members) {
-        Members = members;
-    }
-
-    public void setTodoCards(ArrayList<String> todoCards) {
-        TodoCards = todoCards;
-    }
-
-    public void setToBeRevisedCards(ArrayList<String> toBeRevisedCards) {
-        ToBeRevisedCards = toBeRevisedCards;
-    }
-
-    public void setMulticastAddress(String multicastAddress) {
-        MulticastAddress = multicastAddress;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
 }
