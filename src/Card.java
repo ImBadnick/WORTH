@@ -1,10 +1,8 @@
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@JsonPropertyOrder({ "name", "description", "currentList", "cardHistory"})
 public class Card {
     public enum cardStatus { TODO, INPROGRESS, TOBEREVISED, DONE}
     private String name;

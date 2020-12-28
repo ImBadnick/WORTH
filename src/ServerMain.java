@@ -139,7 +139,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "login":
                                     LoginResult<NicknameStatusPair> loginResponse;
                                     if(Splittedcommand.length<3) loginResponse = login("","");
-                                    else if(Splittedcommand.length>3) loginResponse = new LoginResult<>("Too much arguments", null, null);
+                                    else if(Splittedcommand.length>3) loginResponse = new LoginResult<>("ERROR: Too much arguments", null, null);
                                     else {
                                         loginResponse = login(Splittedcommand[1], Splittedcommand[2]);
                                         if(loginResponse.getCode().equalsIgnoreCase("ok")) {
@@ -157,14 +157,14 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "logout":
                                     if(Splittedcommand.length<2) response = logout("");
-                                    else if(Splittedcommand.length>2) response = "Too much arguments";
+                                    else if(Splittedcommand.length>2) response = "ERROR: Too much arguments";
                                     else {
                                         if(((String) key.attachment()).equalsIgnoreCase(Splittedcommand[1]))
                                         {
                                             response = logout(Splittedcommand[1]);
                                             if(response.equalsIgnoreCase("ok")) key.attach(null);
                                         }
-                                        else response = "You are trying to logout another user!";
+                                        else response = "ERROR: You are trying to logout another user!";
                                     }
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -177,7 +177,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "listusers":
                                     Result<NicknameStatusPair> ListUsersResponse;
-                                    if(Splittedcommand.length>1) ListUsersResponse = new Result<>("Too much arguments", null);
+                                    if(Splittedcommand.length>1) ListUsersResponse = new Result<>("ERROR: Too much arguments", null);
                                     else ListUsersResponse = listUsers();
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -190,7 +190,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "listonlineusers":
                                     Result<String> ListOnlineUsersResponse;
-                                    if(Splittedcommand.length>1) ListOnlineUsersResponse = new Result<>("Too much arguments", null);
+                                    if(Splittedcommand.length>1) ListOnlineUsersResponse = new Result<>("ERROR: Too much arguments", null);
                                     else ListOnlineUsersResponse = listOnlineUsers();
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -203,7 +203,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "listprojects":
                                     Result<String> ListProjects;
-                                    if(Splittedcommand.length>1) ListProjects = new Result<>("Too much arguments", null);
+                                    if(Splittedcommand.length>1) ListProjects = new Result<>("ERROR: Too much arguments", null);
                                     else ListProjects = listProjects((String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -216,7 +216,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "createproject":
                                     if(Splittedcommand.length<2) response = createProject("","");
-                                    else if(Splittedcommand.length>2) response = "Too much arguments";
+                                    else if(Splittedcommand.length>2) response = "ERROR: Too much arguments";
                                     else response = createProject(Splittedcommand[1],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -229,7 +229,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "addmember":
                                     if(Splittedcommand.length<3) response = addMember("","","");
-                                    else if(Splittedcommand.length>3) response = "Too much arguments";
+                                    else if(Splittedcommand.length>3) response = "ERROR: Too much arguments";
                                     else response = addMember(Splittedcommand[1],Splittedcommand[2],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -243,7 +243,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "showmembers":
                                     Result<String> ShowMembersResponse;
                                     if(Splittedcommand.length<2) ShowMembersResponse = showMembers("",(String) key.attachment());
-                                    else if(Splittedcommand.length>2) ShowMembersResponse = new Result<>("Too much arguments", null);
+                                    else if(Splittedcommand.length>2) ShowMembersResponse = new Result<>("ERROR: Too much arguments", null);
                                     else ShowMembersResponse = showMembers(Splittedcommand[1],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -257,7 +257,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "showcards":
                                     Result<NicknameStatusPair> ShowCardsResponse;
                                     if(Splittedcommand.length<2) ShowCardsResponse = showCards("",(String) key.attachment());
-                                    else if(Splittedcommand.length>2) ShowCardsResponse = new Result<>("Too much arguments", null);
+                                    else if(Splittedcommand.length>2) ShowCardsResponse = new Result<>("ERROR: Too much arguments", null);
                                     else ShowCardsResponse = showCards(Splittedcommand[1],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -271,7 +271,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "showcard":
                                     Result<String> ShowCardResponse;
                                     if(Splittedcommand.length<3) ShowCardResponse = showCard("","", (String) key.attachment());
-                                    else if(Splittedcommand.length>3) ShowCardResponse = new Result<>("Too much arguments", null);
+                                    else if(Splittedcommand.length>3) ShowCardResponse = new Result<>("ERROR: Too much arguments", null);
                                     else ShowCardResponse = showCard(Splittedcommand[1],Splittedcommand[2],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -297,8 +297,8 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
 
                                 case "movecard":
-                                    if(Splittedcommand.length<5) response = "ProjectName,CardName,InitialList or FinalList are empty";
-                                    else if(Splittedcommand.length>5) response = "Too much arguments";
+                                    if(Splittedcommand.length<5) response = "ERROR: ProjectName,CardName,InitialList or FinalList are empty";
+                                    else if(Splittedcommand.length>5) response = "ERROR: Too much arguments";
                                     else response = moveCard(Splittedcommand[1],Splittedcommand[2],Splittedcommand[3],Splittedcommand[4],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -312,7 +312,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                 case "getcardhistory":
                                     Result<String> getCardHistoryResponse;
                                     if(Splittedcommand.length<3) getCardHistoryResponse = getCardHistory("","", (String) key.attachment());
-                                    else if(Splittedcommand.length>3) getCardHistoryResponse = new Result<>("Too much arguments", null);
+                                    else if(Splittedcommand.length>3) getCardHistoryResponse = new Result<>("ERROR: Too much arguments", null);
                                     else getCardHistoryResponse = getCardHistory(Splittedcommand[1],Splittedcommand[2],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -324,8 +324,8 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     break;
 
                                 case "cancelproject":
-                                    if(Splittedcommand.length<2) response = "ProjectName is empty";
-                                    else if(Splittedcommand.length>2) response = "Too much arguments";
+                                    if(Splittedcommand.length<2) response = "ERROR: ProjectName is empty";
+                                    else if(Splittedcommand.length>2) response = "ERROR: Too much arguments";
                                     else response = cancelProject(Splittedcommand[1],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -338,8 +338,8 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "readchat":
                                     chatINFO readChatResponse;
-                                    if(Splittedcommand.length<2) readChatResponse = new chatINFO("ProjectName is empty",null);
-                                    else if(Splittedcommand.length>2) readChatResponse = new chatINFO("Too much arguments",null);
+                                    if(Splittedcommand.length<2) readChatResponse = new chatINFO("ERROR: ProjectName is empty",null);
+                                    else if(Splittedcommand.length>2) readChatResponse = new chatINFO("ERROR: Too much arguments",null);
                                     else readChatResponse = readChat(Splittedcommand[1],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -352,8 +352,8 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                                 case "sendchatmsg":
                                     chatINFO sendChatResponse;
-                                    if(Splittedcommand.length<2) sendChatResponse = new chatINFO("ProjectName is empty",null);
-                                    else if(Splittedcommand.length>2) sendChatResponse = new chatINFO("Too much arguments",null);
+                                    if(Splittedcommand.length<2) sendChatResponse = new chatINFO("ERROR: ProjectName is empty",null);
+                                    else if(Splittedcommand.length>2) sendChatResponse = new chatINFO("ERROR: Too much arguments",null);
                                     else sendChatResponse = sendChatMsg(Splittedcommand[1],(String) key.attachment());
                                     //PREPARING RESPONSE TO SEND
                                     Data = this.dataMap.get(client);
@@ -374,7 +374,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     break;
 
                                 default:
-                                    response = "Error: Command not found!";
+                                    response = "ERROR: Command not found!";
                                     Data = this.dataMap.get(client);
                                     baos = new ByteArrayOutputStream( );
                                     oos = new ObjectOutputStream(baos);
@@ -414,9 +414,9 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     public String register(String nickUtente, String password) throws RemoteException {
         System.out.println("Command requested: register " + nickUtente + " " + password);
         if(nickUtente.isEmpty() || password.isEmpty())
-            return "Error: Nickname or Password are empty - user not registered";
+            return "ERROR: Nickname or Password are empty - user not registered";
         for(User user : Users) //Checking if the user is already registered
-            if(user.getNickname().equalsIgnoreCase(nickUtente)) return "Error: " + nickUtente + " already exists";
+            if(user.getNickname().equalsIgnoreCase(nickUtente)) return "ERROR: " + nickUtente + " already exists";
 
         //Creating the new User and adding to the User list
         User u = new User(nickUtente,password);
@@ -437,14 +437,14 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
         boolean tmp = false; //True = logged in with success
         List<NicknameStatusPair> list = new ArrayList<>(); //List of users in the system (Username - status)
 
-        if(nickUtente.isEmpty() || password.isEmpty()) code = "Nickname or Password are empty!"; //Checking if the nickUtente or Password are empty
+        if(nickUtente.isEmpty() || password.isEmpty()) code = "ERROR: Nickname or Password are empty!"; //Checking if the nickUtente or Password are empty
         else{
-            if (Users.isEmpty()) code = "Users list is empty!. You need to be registered first."; //Checking if the users list is empty
+            if (Users.isEmpty()) code = "ERROR: Users list is empty!. You need to be registered first."; //Checking if the users list is empty
             else{
                 for(User user : Users) //Searching the nickUtente in users registered in the system
                 {
                     if(user.getNickname().equalsIgnoreCase(nickUtente)) //Checking if the nickUtente equals the registered user
-                        if(user.getPassword().equals(password)){ //Checking if the password is correct
+                        if(user.passwordMatch(password)){ //Checking if the password is correct
                             if(user.getStatus().equals("offline")) { //Checking if the user is offline
                                 tmp = true; //True = logged in with success
                                 update(nickUtente, "online");  //CALLBACKS!
@@ -453,11 +453,11 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                                     if(project.isMember(nickUtente))
                                         multicastList.add(new multicastINFO(project.getMulticastAddress(),project.getPort()));
                             }
-                            else code = "User is already online, please logout first!";
-                        } else code = "Wrong user password";
+                            else code = "ERROR: User is already online, please logout first!";
+                        } else code = "ERROR: Wrong user password";
                     list.add(new NicknameStatusPair(user.getNickname(),user.getStatus())); //Creating the list of the system's users
                 }
-                if (!tmp && code == null) code = "User not found in the system, register it first.";
+                if (!tmp && code == null) code = "ERROR: User not found in the system, register it first.";
             }
         }
 
@@ -469,8 +469,8 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
 
     public String logout(String nickUtente) {
-        if(nickUtente.isEmpty()) return "Nickname is empty";
-        if(Users.isEmpty()) return "Users list is empty!. You need to be logged in first.";
+        if(nickUtente.isEmpty()) return "ERROR: Nickname is empty";
+        if(Users.isEmpty()) return "ERROR: Users list is empty!. You need to be logged in first.";
         for(User user : Users) { //Searching the nickUtente in users registered in the system
             if(user.getNickname().equalsIgnoreCase(nickUtente)) //Checking if the nickUtente equals the registered user
                 if(user.getStatus().equalsIgnoreCase("online")){ //Checking if the user is online
@@ -479,13 +479,13 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                     }catch(RemoteException e) { e.printStackTrace(); }
                     user.setStatus("offline"); //Changes the status of user to "OFFLINE"
                     return "ok";
-                } else return "User is already offline -> error";
+                } else return "ERROR: User is already offline";
         }
-        return "User doesn't exists";
+        return "ERROR: User doesn't exists";
     }
 
     public Result<NicknameStatusPair> listUsers() { //Lists all the users registered in the system
-        if(Users.isEmpty()) return new Result<>("User list is empty!",null);
+        if(Users.isEmpty()) return new Result<>("ERROR: User list is empty!",null);
         List<NicknameStatusPair> listUsers = new ArrayList<>();
         for(User user : Users)
             listUsers.add(new NicknameStatusPair(user.getNickname(),user.getStatus()));
@@ -493,35 +493,35 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     }
 
     public Result<String> listOnlineUsers() { //Lists all the users registered online in the system
-        if(Users.isEmpty()) return new Result<>("User list is empty!",null);
+        if(Users.isEmpty()) return new Result<>("ERROR: User list is empty!",null);
         List<String> listOnlineUsers = new ArrayList<>();
         for(User user : Users)
             if(user.getStatus().equalsIgnoreCase("online"))
                 listOnlineUsers.add(user.getNickname());
-        if(listOnlineUsers.isEmpty()) return new Result<>("Online users list is empty!",null);
+        if(listOnlineUsers.isEmpty()) return new Result<>("ERROR: Online users list is empty!",null);
 
         return new Result<>("ok", listOnlineUsers);
     }
 
     public Result<String> listProjects(String nickUtente) {
-        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
+        if(Projects.isEmpty()) return new Result<>("ERROR: Project list is empty!",null);
         List<String> listUserProjects = new ArrayList<>();
         for(Project project: Projects) //Searching the project
             if(project.isMember(nickUtente)) //Checks if the nickUtente is a project's member
                 listUserProjects.add(project.getID());  //Creating the list of the projects
 
-        if(listUserProjects.isEmpty()) return new Result<>("User doesn't participate to any project!",null);
+        if(listUserProjects.isEmpty()) return new Result<>("ERROR: User doesn't participate to any project!",null);
 
         return new Result<>("ok", listUserProjects);
     }
 
     public String createProject(String projectName, String nickUtente) {
-        if(projectName.isEmpty()) return "ProjectName is empty";
+        if(projectName.isEmpty()) return "ERROR: ProjectName is empty";
         for(Project project : Projects) //Checks if the project already exists
             if(project.getID().equalsIgnoreCase(projectName))
-                return "The project exists already!";
+                return "ERROR: The project exists already!";
         String ip = this.MipGenerator.generateIP(); //Generates a random multicast IP
-        if(ip.equalsIgnoreCase("error")) return "IP GENERATOR ERROR!";
+        if(ip.equalsIgnoreCase("error")) return "ERROR: IP GENERATOR ERROR!";
         int port = random.nextInt((65535-1025+1))+1025; //Generates a random port [1025-65535]
         Project project = new Project(projectName,nickUtente,ip,port); //Creates a new project
         System.out.println(ip + " " + project.getPort());
@@ -551,23 +551,22 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     public String addMember(String projectName, String nickUtente, String addingUser) { //nickUtente = user to add ---- addingUser = user that adds
         boolean Projectfound = false, userFound = false;
         String code = "ERROR";
-        if(projectName.isEmpty() || nickUtente.isEmpty()) return "ProjectName or NickUtente is empty";
-        if(Projects.isEmpty()) return "Project list is empty!";
+        if(projectName.isEmpty() || nickUtente.isEmpty()) return "ERROR: ProjectName or NickUtente is empty";
+        if(Projects.isEmpty()) return "ERROR: Project list is empty!";
 
         for(User user : Users) //Checking if the member is registered in the system
             if (user.getNickname().equalsIgnoreCase(nickUtente)) {
                 userFound = true;
                 break;
             }
-        if(!userFound) return "The user is not registered in the system!";
+        if(!userFound) return "ERROR: The user is not registered in the system!";
 
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(projectName)) { //Checks if is the project
-                if(!project.isMember(addingUser)) return "AddingUser isn't member of the project!"; //Checks if the addingUser is member of the project
+                if(!project.isMember(addingUser)) return "ERROR: " + addingUser + " isn't member of the project!"; //Checks if the addingUser is member of the project
                 code = project.addMember(nickUtente); //Adds the nickUtente to the project
                 Projectfound = true;
                 if(code.equalsIgnoreCase("ok")){ //If add went ok, else -> User is already a member of the project
-                    System.out.println("ciao");
                     try {
                         mapper.writeValue(projectFile, Projects); //Updating backup info
                     } catch (IOException e) {
@@ -578,63 +577,63 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                     } catch (RemoteException e) { e.printStackTrace(); }
                 }
             }
-        if(!Projectfound) return "The project doesn't exist";
+        if(!Projectfound) return "ERROR: The project doesn't exist";
 
         return code;
     }
 
     public Result<String> showMembers(String projectName, String nickUtente) {
         List<String> list;
-        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
-        if(projectName.isEmpty()) return new Result<>("ProjectName is empty",null);
+        if(Projects.isEmpty()) return new Result<>("ERROR: Project list is empty!",null);
+        if(projectName.isEmpty()) return new Result<>("ERROR: ProjectName is empty",null);
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new Result<>("User doesn't participate to any project!",null); //checking if the user is member of the project
+                if(!project.isMember(nickUtente)) return new Result<>("ERROR: User doesn't participate to the project!",null); //checking if the user is member of the project
                 list = project.getMembers(); //List of user that are members of the project
-                if(list == null) return new Result<>("Member list is empty",null); //IN CASE OF NULL LIST
+                if(list == null) return new Result<>("ERROR: Member list is empty",null); //IN CASE OF NULL LIST
                 else return new Result<>("ok",list);
             }
-        return new Result<>("The project doesn't exist",null);
+        return new Result<>("ERROR: The project doesn't exist",null);
     }
 
     public Result<NicknameStatusPair> showCards(String projectName, String nickUtente) {
         List<NicknameStatusPair> list;
-        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
-        if(projectName.isEmpty()) return new Result<>("ProjectName is empty",null);
+        if(Projects.isEmpty()) return new Result<>("ERROR: Project list is empty!",null);
+        if(projectName.isEmpty()) return new Result<>("ERROR: ProjectName is empty",null);
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new Result<>("User doesn't participate to any project!",null); //checking if the user is member of the project
+                if(!project.isMember(nickUtente)) return new Result<>("ERROR: User doesn't participate to the project!",null); //checking if the user is member of the project
                 list = project.getCardsName(); //List of cards of the project
-                if(list == null) return new Result<>("Cards list is empty",null); //IN CASE OF NULL LIST
+                if(list == null) return new Result<>("ERROR: Cards list is empty",null); //IN CASE OF NULL LIST
                 else return new Result<>("ok",list);
             }
-        return new Result<>("The project doesn't exist",null);
+        return new Result<>("ERROR: The project doesn't exist",null);
     }
 
     public Result<String> showCard(String projectName, String cardName, String nickUtente){
         List<String> info;
-        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
-        if(projectName.isEmpty() || cardName.isEmpty()) return new Result<>("ProjectName or cardName are empty",null);
+        if(Projects.isEmpty()) return new Result<>("ERROR: Project list is empty!",null);
+        if(projectName.isEmpty() || cardName.isEmpty()) return new Result<>("ERROR: ProjectName or cardName are empty",null);
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new Result<>("User doesn't participate to any project!",null); //checking if the user is member of the project
+                if(!project.isMember(nickUtente)) return new Result<>("ERROR: User doesn't participate to the project!",null); //checking if the user is member of the project
                 info = project.getCardInfo(cardName); //Card info
-                if(info == null) return new Result<>("Card not found",null); //If the card is not in the project -> null info
+                if(info == null) return new Result<>("ERROR: Card not found",null); //If the card is not in the project -> null info
                 else return new Result<>("ok",info);
             }
-        return new Result<>("The project doesn't exist",null);
+        return new Result<>("ERROR: The project doesn't exist",null);
     }
 
     public String addCard(String projectName, String cardName, String description, String nickUtente){
-        if(Projects.isEmpty()) return "Project list is empty";
-        if(projectName.isEmpty() || cardName.isEmpty()) return "ProjectName or cardName are empty";
+        if(Projects.isEmpty()) return "ERROR: Project list is empty";
+        if(projectName.isEmpty() || cardName.isEmpty()) return "ERROR: ProjectName or cardName are empty";
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!"; //checking if the user is member of the project
+                if(!project.isMember(nickUtente)) return "ERROR: User doesn't participate to the project!"; //checking if the user is member of the project
                 String code = project.addCard(cardName,description);
                 if(code.equalsIgnoreCase("ok")){ //if card added with success
                     try {
@@ -643,16 +642,16 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                 }
                 return code;
             }
-        return "The project doesn't exist";
+        return "ERROR: The project doesn't exist";
 
     }
 
     public String moveCard(String projectName, String cardName, String fromList, String movetoList, String nickUtente) {
-        if(Projects.isEmpty()) return "Project list is empty";
+        if(Projects.isEmpty()) return "ERROR: Project list is empty";
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(projectName))  //Searching project
             {
-                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!"; //checking if the user is member of the project
+                if(!project.isMember(nickUtente)) return "ERROR: User doesn't participate to the project!"; //checking if the user is member of the project
                 String code = project.moveCard(cardName,fromList,movetoList);
                 if(code.equalsIgnoreCase("ok")){ //If the card moved with success
                     try {
@@ -678,55 +677,55 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
                 }
                 return code;
             }
-        return "The project doesn't exist";
+        return "ERROR: The project doesn't exist";
     }
 
     public Result<String> getCardHistory(String projectName, String cardName, String nickUtente) {
         List<String> history;
-        if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
-        if(projectName.isEmpty() || cardName.isEmpty()) return new Result<>("ProjectName or cardName are empty",null);
+        if(Projects.isEmpty()) return new Result<>("ERROR: Project list is empty!",null);
+        if(projectName.isEmpty() || cardName.isEmpty()) return new Result<>("ERROR: ProjectName or cardName are empty",null);
         for(Project project : Projects) //Searching project
             if(project.getID().equalsIgnoreCase(projectName))
             {
-                if(!project.isMember(nickUtente)) return new Result<>("User doesn't participate to any project!",null); //checking if the user is member of the project
+                if(!project.isMember(nickUtente)) return new Result<>("ERROR: User doesn't participate to the project!",null); //checking if the user is member of the project
                 history = project.getCardHistory(cardName); //Getting card history
-                if(history == null) return new Result<>("Card not found",null); //In case card is not found
+                if(history == null) return new Result<>("ERROR: Card not found",null); //In case card is not found
                 else return new Result<>("ok",history);
             }
-        return new Result<>("The project doesn't exist",null);
+        return new Result<>("ERROR: The project doesn't exist",null);
     }
 
     public chatINFO readChat(String ProjectName, String nickUtente) {
-        if(Projects.isEmpty()) return new chatINFO("Project list is empty!",null);
-        if(ProjectName.isEmpty()) return new chatINFO("ProjectName is empty",null);
+        if(Projects.isEmpty()) return new chatINFO("ERROR: Project list is empty!",null);
+        if(ProjectName.isEmpty()) return new chatINFO("ERROR: ProjectName is empty",null);
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(ProjectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new chatINFO("User doesn't participate to any project!",null); //checking if the user is member of the project
+                if(!project.isMember(nickUtente)) return new chatINFO("ERROR: User doesn't participate to the project!",null); //checking if the user is member of the project
                 return new chatINFO("ok",project.getMulticastAddress()); //Getting chat info
             }
-        return new chatINFO("The project doesn't exists", null);
+        return new chatINFO("ERROR: The project doesn't exists", null);
     }
 
     public chatINFO sendChatMsg(String ProjectName, String nickUtente) {
-        if(Projects.isEmpty()) return new chatINFO("Project list is empty!",null);
-        if(ProjectName.isEmpty()) return new chatINFO("ProjectName is empty",null);
+        if(Projects.isEmpty()) return new chatINFO("ERROR: Project list is empty!",null);
+        if(ProjectName.isEmpty()) return new chatINFO("ERROR: ProjectName is empty",null);
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(ProjectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return new chatINFO("User doesn't participate to any project!",null); //checking if the user is member of the project
+                if(!project.isMember(nickUtente)) return new chatINFO("ERROR: User doesn't participate to the project!",null); //checking if the user is member of the project
                 return new chatINFO("ok",project.getMulticastAddress());  //Getting chat info
             }
-        return new chatINFO("The project doesn't exists", null);
+        return new chatINFO("ERROR: The project doesn't exists", null);
     }
 
     public String cancelProject(String projectName, String nickUtente) {
-        if(Projects.isEmpty()) return "Project list is empty";
+        if(Projects.isEmpty()) return "ERROR: Project list is empty";
         for(Project project : Projects)
             if(project.getID().equalsIgnoreCase(projectName)) //Searching project
             {
-                if(!project.isMember(nickUtente)) return "User doesn't participate to any project!"; //checking if the user is member of the project
-                if(!project.isDone()) return "All cards in the project are not in status: DONE"; //Checking if all card are in status "DONE"
+                if(!project.isMember(nickUtente)) return "ERROR: User doesn't participate to the project!"; //checking if the user is member of the project
+                if(!project.isDone()) return "ERROR: All cards in the project are not in status: DONE"; //Checking if all card are in status "DONE"
                 Projects.remove(project); //Removing project
                 try {
                     if(Projects.isEmpty()){ //Reset multicast IP generator if project list is empty
@@ -756,7 +755,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
                 return "ok";
             }
-        return "The project doesn't exist";
+        return "ERROR: The project doesn't exist";
     }
 
 

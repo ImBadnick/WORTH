@@ -1,9 +1,7 @@
 import ProjectUtils.NicknameStatusPair;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-@JsonPropertyOrder({ "id", "Cards", "TodoCards", "InProgressCards", "ToBeRevisedCards", "DoneCards", "Members", "MulticastAddress", "port" })
 public class Project {
     private String id;
     private List<Card> Cards;
@@ -62,7 +59,7 @@ public class Project {
 
     public String addMember(String nickUtente){
         for(String user : Members)
-            if(user.equalsIgnoreCase(nickUtente)) return "The user added is already in the project!";
+            if(user.equalsIgnoreCase(nickUtente)) return "ERROR: The user added is already in the project!";
         Members.add(nickUtente);
         return "ok";
     }
@@ -70,7 +67,7 @@ public class Project {
     public String addCard(String cardName,String description){
         for(Card card : Cards)
             if(card.getName().equalsIgnoreCase(cardName)) //Checks if the card already exists in the project
-                return "Card already exists in the project!";
+                return "ERROR: Card already exists in the project!";
         Card card = new Card(cardName,description);
         Cards.add(card);
         TodoCards.add(cardName);
@@ -91,19 +88,18 @@ public class Project {
     }
 
     public String moveCard(String cardName, String fromList, String toList){
-        try{
-            Card.cardStatus.valueOf(fromList.toUpperCase());
-        }catch(IllegalArgumentException ex){ return "Not a valid fromList";}
+        if (!fromList.equalsIgnoreCase("todo") && !fromList.equalsIgnoreCase("inprogress") && !fromList.equalsIgnoreCase("toberevised") && !fromList.equalsIgnoreCase("done"))
+            return "ERROR: Not a valid fromList";
+        if (!toList.equalsIgnoreCase("todo") && !toList.equalsIgnoreCase("inprogress") && !toList.equalsIgnoreCase("toberevised") && !toList.equalsIgnoreCase("done"))
+            return "ERROR: Not a valid toList";
         for(Card card : Cards)
             if(card.getName().equalsIgnoreCase(cardName)) { //Searching the card
                 //MOVING THE CARD FROM fromlist TO tolist
-                if (!toList.equalsIgnoreCase("todo") && !toList.equalsIgnoreCase("inprogress") && !toList.equalsIgnoreCase("toberevised") && !toList.equalsIgnoreCase("done"))
-                    return "Error to list";
                 switch (card.getCurrentList().toLowerCase()) {
                     case "todo":
                         if (!fromList.equalsIgnoreCase("todo")) return "Error from list!";
                         if (!toList.equalsIgnoreCase("inprogress"))
-                            return "Can't move card from: " + fromList + " to: " + toList;
+                            return "ERROR: Can't move card from: " + fromList + " to: " + toList;
                         card.changeCurrentList(toList.toUpperCase());
                         TodoCards.remove(cardName);
                         InProgressCards.add(cardName);
@@ -112,7 +108,7 @@ public class Project {
                     case "inprogress":
                         if (!fromList.equalsIgnoreCase("inprogress")) return "Error from list!";
                         if (!toList.equalsIgnoreCase("done") && !toList.equalsIgnoreCase("toberevised"))
-                            return "Can't move card from: " + fromList + " to: " + toList;
+                            return "ERROR: Can't move card from: " + fromList + " to: " + toList;
                         if (toList.equalsIgnoreCase("done")) {
                             card.changeCurrentList(toList.toUpperCase());
                             InProgressCards.remove(cardName);
@@ -127,7 +123,7 @@ public class Project {
                     case "toberevised":
                         if (!fromList.equalsIgnoreCase("toberevised")) return "Error from list!";
                         if (!toList.equalsIgnoreCase("done") && !toList.equalsIgnoreCase("inprogress"))
-                            return "Can't move card from: " + fromList + " to: " + toList;
+                            return "ERROR: Can't move card from: " + fromList + " to: " + toList;
                         if (toList.equalsIgnoreCase("done")) {
                             card.changeCurrentList(toList.toUpperCase());
                             ToBeRevisedCards.remove(cardName);
@@ -141,7 +137,7 @@ public class Project {
 
                     case "done":
                         if (!fromList.equalsIgnoreCase("done")) return "Error from list!";
-                        return "Can't move card from: " + fromList + " to: " + toList;
+                        return "ERROR: Can't move card from: " + fromList + " to: " + toList;
                 }
                 File cardFile = new File(projectDir + "/" + card.getName() + ".json");
                 try {
@@ -151,7 +147,7 @@ public class Project {
                 }
                 return "ok";
             }
-        return "Card not found";
+        return "ERROR: Card not found";
     }
 
 
