@@ -10,16 +10,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 @JsonPropertyOrder({ "id", "Cards", "TodoCards", "InProgressCards", "ToBeRevisedCards", "DoneCards", "Members", "MulticastAddress", "port" })
 public class Project {
     private String id;
-    private ArrayList<Card> Cards;
-    private ArrayList<String> TodoCards;
-    private ArrayList<String> InProgressCards;
-    private ArrayList<String> ToBeRevisedCards;
-    private ArrayList<String> DoneCards;
-    private ArrayList<String> Members;
+    private List<Card> Cards;
+    private List<String> TodoCards;
+    private List<String> InProgressCards;
+    private List<String> ToBeRevisedCards;
+    private List<String> DoneCards;
+    private List<String> Members;
     private String MulticastAddress;
     private int port;
     private String dirPath;
@@ -112,7 +113,7 @@ public class Project {
                         if (!fromList.equalsIgnoreCase("inprogress")) return "Error from list!";
                         if (!toList.equalsIgnoreCase("done") && !toList.equalsIgnoreCase("toberevised"))
                             return "Can't move card from: " + fromList + " to: " + toList;
-                        if (fromList.equalsIgnoreCase("done")) {
+                        if (toList.equalsIgnoreCase("done")) {
                             card.changeCurrentList(toList.toUpperCase());
                             InProgressCards.remove(cardName);
                             DoneCards.add(cardName);
@@ -127,7 +128,7 @@ public class Project {
                         if (!fromList.equalsIgnoreCase("toberevised")) return "Error from list!";
                         if (!toList.equalsIgnoreCase("done") && !toList.equalsIgnoreCase("inprogress"))
                             return "Can't move card from: " + fromList + " to: " + toList;
-                        if (fromList.equalsIgnoreCase("done")) {
+                        if (toList.equalsIgnoreCase("done")) {
                             card.changeCurrentList(toList.toUpperCase());
                             ToBeRevisedCards.remove(cardName);
                             DoneCards.add(cardName);
@@ -155,9 +156,9 @@ public class Project {
 
 
     @JsonIgnore
-    public ArrayList<NicknameStatusPair> getCardsName(){ //Get all the cards names in the project
+    public List<NicknameStatusPair> getCardsName(){ //Get all the cards names in the project
         if(Cards.isEmpty()) return null;
-        ArrayList<NicknameStatusPair> list = new ArrayList<>();
+        List<NicknameStatusPair> list = new ArrayList<>();
         for(Card card : Cards)
             list.add(new NicknameStatusPair(card.getName(),card.getCurrentList()));
         return list;
@@ -181,27 +182,27 @@ public class Project {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    public ArrayList<String> getCardHistory(String cardName){ //Gets the history list of the card
+    public List<String> getCardHistory(String cardName){ //Gets the history list of the card
         if(Cards.isEmpty()) return null;
-        ArrayList<String> history = null;
+        List<String> history = null;
         for(Card card : Cards)
             if(card.getName().equalsIgnoreCase(cardName))
                 history = card.getCardHistory();
         return history;
     }
 
-    public ArrayList<String> getCardInfo(String cardName){ //Gets the card informations
+    public List<String> getCardInfo(String cardName){ //Gets the card informations
         if(Cards.isEmpty()) return null;
-        ArrayList<String> info = null;
+        List<String> info = null;
         for(Card card : Cards)
             if(card.getName().equalsIgnoreCase(cardName))
                 info = card.getInfo();
         return info;
     }
 
-    public ArrayList<String> getMembers(){ //Gets the members in the project
+    public List<String> getMembers(){ //Gets the members in the project
         if(Members.isEmpty()) return null;
-        return (ArrayList<String>) this.Members.clone();
+        return new ArrayList<>(Members);
     }
 
     public String getID(){ return this.id; }
@@ -209,19 +210,19 @@ public class Project {
     public String getDirPath() {
         return dirPath;
     }
-    public ArrayList<Card> getCards(){
+    public List<Card> getCards(){
         return this.Cards;
     }
-    public ArrayList<String> getDoneCards() { return DoneCards; }
+    public List<String> getDoneCards() { return DoneCards; }
     public int getPort(){
         return this.port;
     }
     public String getMulticastAddress(){
         return this.MulticastAddress;
     }
-    public ArrayList<String> getInProgressCards() { return InProgressCards; }
-    public ArrayList<String> getToBeRevisedCards() { return ToBeRevisedCards; }
-    public ArrayList<String> getTodoCards() { return TodoCards; }
+    public List<String> getInProgressCards() { return InProgressCards; }
+    public List<String> getToBeRevisedCards() { return ToBeRevisedCards; }
+    public List<String> getTodoCards() { return TodoCards; }
 
     public void setDirPath(String dirPath) {
         this.dirPath = dirPath;
@@ -231,13 +232,13 @@ public class Project {
     public void setProjectDir(File projectDir) {
         this.projectDir = projectDir;
     }
-    public void setCards(ArrayList<Card> cards) { Cards = cards; }
-    public void setDoneCards(ArrayList<String> doneCards) { DoneCards = doneCards; }
+    public void setCards(List<Card> cards) { Cards = cards; }
+    public void setDoneCards(List<String> doneCards) { DoneCards = doneCards; }
     public void setId(String id) { this.id = id; }
-    public void setInProgressCards(ArrayList<String> inProgressCards) { InProgressCards = inProgressCards; }
-    public void setMembers(ArrayList<String> members) { Members = members; }
-    public void setTodoCards(ArrayList<String> todoCards) { TodoCards = todoCards; }
-    public void setToBeRevisedCards(ArrayList<String> toBeRevisedCards) { ToBeRevisedCards = toBeRevisedCards; }
+    public void setInProgressCards(List<String> inProgressCards) { InProgressCards = inProgressCards; }
+    public void setMembers(List<String> members) { Members = members; }
+    public void setTodoCards(List<String> todoCards) { TodoCards = todoCards; }
+    public void setToBeRevisedCards(List<String> toBeRevisedCards) { ToBeRevisedCards = toBeRevisedCards; }
     public void setMulticastAddress(String multicastAddress) { MulticastAddress = multicastAddress; }
     public void setPort(int port) { this.port = port; }
 

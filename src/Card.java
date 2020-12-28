@@ -2,6 +2,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @JsonPropertyOrder({ "name", "description", "currentList", "cardHistory"})
 public class Card {
@@ -9,7 +10,7 @@ public class Card {
     private String name;
     private String description;
     private cardStatus currentList;
-    private ArrayList<cardStatus> cardHistory;
+    private List<cardStatus> cardHistory;
 
     public Card(String name, String description){
         this.name = name;
@@ -27,15 +28,15 @@ public class Card {
         this.cardHistory.add(cardStatus.valueOf(toList.toUpperCase()));
     }
     @JsonIgnore
-    public ArrayList<String> getInfo(){ //Gets card information
-        ArrayList<String> info = new ArrayList<>();
+    public List<String> getInfo(){ //Gets card information
+        List<String> info = new ArrayList<>();
         info.add(this.name);
         info.add(this.description);
         info.add(this.currentList.name());
         return info;
     }
-    public ArrayList<String> getCardHistory(){ //Gets card history list
-        ArrayList<String> history = new ArrayList<>();
+    public List<String> getCardHistory(){ //Gets card history list
+        List<String> history = new ArrayList<>();
         for(cardStatus status : cardHistory)
             history.add(status.name());
         return history;
@@ -47,7 +48,7 @@ public class Card {
         return this.currentList.name();
     }
 
-    public void setCardHistory(ArrayList<cardStatus> cardHistory) { this.cardHistory = cardHistory; }
+    public void setCardHistory(List<cardStatus> cardHistory) { this.cardHistory = cardHistory; }
     public void setCurrentList(String currentList) {
         this.currentList = cardStatus.valueOf(currentList.toUpperCase());
     }

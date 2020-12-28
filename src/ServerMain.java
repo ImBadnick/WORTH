@@ -14,6 +14,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 public class ServerMain extends RemoteObject implements ServerMainInterface,ServerMainInterfaceRMI{
+    private static final long serialVersionUID = -932570530032326976L;
     private final List <CallBackInfo> clients; //Clients callback info
     private List<User> Users; //Users registered
     private List<Project> Projects; //Project list
@@ -25,7 +26,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     private final File backupDir; //Backup directory
     private final ObjectMapper mapper; //ObjectMapper for json
     private File userFile,projectFile,MipGeneratorFile; //Files for backup
-    private final ArrayList<multicastConnectInfo> Multicastsockets; //List of multicast server's info
+    private final List<multicastConnectInfo> Multicastsockets; //List of multicast server's info
 
     public ServerMain(){
         super();
@@ -44,7 +45,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
         this.projectFile = new File(backupDir + "/Projects.json");
         this.MipGeneratorFile = new File(backupDir + "/MipGenerator.json");
         if(!backupDir.exists()) { //If backup directory doesn't exists -> create
-            backupDir.mkdir();
+           backupDir.mkdir();
         }
         try {
             if(!userFile.exists()){ //If users file doesn't exists
@@ -432,9 +433,9 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     public LoginResult<NicknameStatusPair> login(String nickUtente, String password) throws IOException {
         String code = null; //Status code of the login
         LoginResult<NicknameStatusPair> lr; //Result of login method
-        ArrayList<multicastINFO> multicastList = new ArrayList<>(); //Multicast info of projects that nickUtente is member
+        List<multicastINFO> multicastList = new ArrayList<>(); //Multicast info of projects that nickUtente is member
         boolean tmp = false; //True = logged in with success
-        ArrayList<NicknameStatusPair> list = new ArrayList<>(); //List of users in the system (Username - status)
+        List<NicknameStatusPair> list = new ArrayList<>(); //List of users in the system (Username - status)
 
         if(nickUtente.isEmpty() || password.isEmpty()) code = "Nickname or Password are empty!"; //Checking if the nickUtente or Password are empty
         else{
@@ -485,7 +486,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
     public Result<NicknameStatusPair> listUsers() { //Lists all the users registered in the system
         if(Users.isEmpty()) return new Result<>("User list is empty!",null);
-        ArrayList<NicknameStatusPair> listUsers = new ArrayList<>();
+        List<NicknameStatusPair> listUsers = new ArrayList<>();
         for(User user : Users)
             listUsers.add(new NicknameStatusPair(user.getNickname(),user.getStatus()));
         return new Result<>("ok", listUsers);
@@ -493,7 +494,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
     public Result<String> listOnlineUsers() { //Lists all the users registered online in the system
         if(Users.isEmpty()) return new Result<>("User list is empty!",null);
-        ArrayList<String> listOnlineUsers = new ArrayList<>();
+        List<String> listOnlineUsers = new ArrayList<>();
         for(User user : Users)
             if(user.getStatus().equalsIgnoreCase("online"))
                 listOnlineUsers.add(user.getNickname());
@@ -504,7 +505,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
 
     public Result<String> listProjects(String nickUtente) {
         if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
-        ArrayList<String> listUserProjects = new ArrayList<>();
+        List<String> listUserProjects = new ArrayList<>();
         for(Project project: Projects) //Searching the project
             if(project.isMember(nickUtente)) //Checks if the nickUtente is a project's member
                 listUserProjects.add(project.getID());  //Creating the list of the projects
@@ -583,7 +584,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     }
 
     public Result<String> showMembers(String projectName, String nickUtente) {
-        ArrayList<String> list;
+        List<String> list;
         if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
         if(projectName.isEmpty()) return new Result<>("ProjectName is empty",null);
         for(Project project : Projects)
@@ -598,7 +599,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     }
 
     public Result<NicknameStatusPair> showCards(String projectName, String nickUtente) {
-        ArrayList<NicknameStatusPair> list;
+        List<NicknameStatusPair> list;
         if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
         if(projectName.isEmpty()) return new Result<>("ProjectName is empty",null);
         for(Project project : Projects)
@@ -613,7 +614,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     }
 
     public Result<String> showCard(String projectName, String cardName, String nickUtente){
-        ArrayList<String> info;
+        List<String> info;
         if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
         if(projectName.isEmpty() || cardName.isEmpty()) return new Result<>("ProjectName or cardName are empty",null);
         for(Project project : Projects)
@@ -681,7 +682,7 @@ public class ServerMain extends RemoteObject implements ServerMainInterface,Serv
     }
 
     public Result<String> getCardHistory(String projectName, String cardName, String nickUtente) {
-        ArrayList<String> history;
+        List<String> history;
         if(Projects.isEmpty()) return new Result<>("Project list is empty!",null);
         if(projectName.isEmpty() || cardName.isEmpty()) return new Result<>("ProjectName or cardName are empty",null);
         for(Project project : Projects) //Searching project

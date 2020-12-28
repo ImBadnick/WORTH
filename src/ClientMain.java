@@ -12,16 +12,18 @@ import java.rmi.server.RemoteObject;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Scanner;
 
-
+@SuppressWarnings("unchecked")
 public class ClientMain extends RemoteObject implements NotifyEventInterface{
-    private ArrayList<NicknameStatusPair> systemUsers; //Listing users in the system
+    private static final long serialVersionUID = 3330110084717693575L;
+    private List<NicknameStatusPair> systemUsers; //Listing users in the system
     private static final int RMIport = 16617; //RMI port
     private static final int TCPport = 20700; //TCP port for connection
     private static final String ServerAddress = "127.0.0.1";
     private String userName; //Saving the logged in userName
-    private final ArrayList<multicastConnectInfo> Multicastsockets; //List of MulticastSocket Info
+    private final List<multicastConnectInfo> Multicastsockets; //List of MulticastSocket Info
 
     public ClientMain(){
         super();
@@ -242,7 +244,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        loginResult = (LoginResult) ois.readObject();
+        loginResult = (LoginResult<NicknameStatusPair>) ois.readObject();
         if(loginResult.getCode().equalsIgnoreCase("OK")) {
             System.out.println("OK");
             systemUsers = loginResult.getList(); //Gets the registered user list
@@ -298,7 +300,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        Result<String> result = (Result) ois.readObject();
+        Result<String> result = (Result<String>) ois.readObject();
         //Printing
         if(result.getList()==null){
             System.out.println(result.getCode());
@@ -332,7 +334,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        Result<String> result = (Result) ois.readObject();
+        Result<String> result = (Result<String>) ois.readObject();
         //Printing
         if(result.getList()==null){
             System.out.println(result.getCode());
@@ -348,7 +350,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        Result<NicknameStatusPair> result = (Result) ois.readObject();
+        Result<NicknameStatusPair> result = (Result<NicknameStatusPair>) ois.readObject();
         //Printing
         if(result.getList()==null){
             System.out.println(result.getCode());
@@ -364,13 +366,13 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        Result<String> result = (Result) ois.readObject();
+        Result<String> result = (Result<String>) ois.readObject();
         //Printing
         if(result.getList()==null){
             System.out.println(result.getCode());
             return;
         }
-        ArrayList<String> info = result.getList();
+        List<String> info = result.getList();
         System.out.println("Printing the info of the card:");
         System.out.println("-CardName:" + info.get(0));
         System.out.println("-CardDescription:" + info.get(1));
@@ -416,7 +418,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
         socketChannel.write(ByteBuffer.wrap(command.getBytes(StandardCharsets.UTF_8)));
         //Receive
         ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream());
-        Result<String> result = (Result) ois.readObject();
+        Result<String> result = (Result<String>) ois.readObject();
         //Printing
         if(result.getList()==null){
             System.out.println(result.getCode());
@@ -528,7 +530,7 @@ public class ClientMain extends RemoteObject implements NotifyEventInterface{
     }
 
 
-    public void notifyEvent(String nickName, String status) throws RemoteException { //Method used to update registered user list and their status
+    public void notifyEvent(String nickName, String status) { //Method used to update registered user list and their status
         boolean found = false;
         String returnMessage = "Update event received: " + nickName + " " + status;
         System.out.println(returnMessage);
